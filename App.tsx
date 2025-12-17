@@ -1,5 +1,6 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+// Fix: Use namespace import to resolve "no exported member" errors from react-router-dom
+import * as RouterDom from 'react-router-dom';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { WhatsAppButton } from './components/WhatsAppButton';
@@ -16,6 +17,9 @@ import { PropertyForm } from './pages/admin/PropertyForm';
 import { FavoritesProvider } from './context/FavoritesContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PropertyProvider } from './context/PropertyContext';
+
+const { HashRouter, Routes, Route, useLocation, Navigate } = RouterDom;
+const Router = HashRouter;
 
 // Scroll to top wrapper
 const ScrollToTop = () => {

@@ -1,7 +1,11 @@
+
 import React, { useState, useMemo } from 'react';
 import { Search, ChevronDown } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+// Fix: Use namespace import to resolve "no exported member" errors from react-router-dom
+import * as RouterDom from 'react-router-dom';
 import { useProperties } from '../context/PropertyContext';
+
+const { useNavigate } = RouterDom;
 
 export const Hero: React.FC = () => {
   const navigate = useNavigate();
@@ -35,16 +39,18 @@ export const Hero: React.FC = () => {
 
   return (
     <div className="relative min-h-[110vh] flex flex-col justify-center items-center overflow-hidden">
-      {/* Background Image */}
+      {/* Background Image - Updated to a darker luxury apartment */}
       <div className="absolute inset-0 z-0">
         <img
-          src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2670&auto=format&fit=crop"
-          alt="Mansão de Luxo com Piscina"
+          src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto=format&fit=crop"
+          alt="Apartamento de Luxo"
           className="w-full h-full object-cover object-center scale-105"
         />
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-dark-950 via-dark-950/20 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-dark-950 via-dark-950/40 to-transparent"></div>
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-transparent h-32"></div>
+        {/* Extra darkness filter */}
+        <div className="absolute inset-0 bg-black/30"></div>
       </div>
 
       {/* Content */}

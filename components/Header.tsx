@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Heart, User } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+// Fix: Use namespace import to resolve "no exported member" errors from react-router-dom
+import * as RouterDom from 'react-router-dom';
 import { NavItem } from '../types';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
+
+const { Link, useLocation } = RouterDom;
 
 const navItems: NavItem[] = [
   { label: 'Início', path: '/' },

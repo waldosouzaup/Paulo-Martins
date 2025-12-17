@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+// Fix: Use namespace import to resolve "no exported member" errors from react-router-dom
+import * as RouterDom from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Lock, Mail } from 'lucide-react';
+
+const { useNavigate } = RouterDom;
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');

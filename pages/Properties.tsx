@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { PropertyGrid } from '../components/PropertyGrid';
 import { useProperties } from '../context/PropertyContext';
-import { useSearchParams } from 'react-router-dom';
+// Fix: Use namespace import to resolve "no exported member" errors from react-router-dom
+import * as RouterDom from 'react-router-dom';
+
+const { useSearchParams } = RouterDom;
 
 export const Properties: React.FC = () => {
   const { properties } = useProperties();
@@ -100,7 +103,7 @@ export const Properties: React.FC = () => {
             <p className="text-gray-400 font-light">
                 {hasUrlSearch 
                     ? `Encontramos ${filteredProperties.length} imóveis com seus critérios.`
-                    : 'Explore nossa seleção exclusiva de imóveis de alto padrão.'}
+                    : 'Explore nossa selection exclusiva de imóveis de alto padrão.'}
             </p>
         </div>
         

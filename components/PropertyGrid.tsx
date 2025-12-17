@@ -1,9 +1,12 @@
 import React from 'react';
 import { BedDouble, Car, Scaling, Heart } from 'lucide-react';
-import { Link } from 'react-router-dom';
+// Fix: Use namespace import to resolve "no exported member" errors from react-router-dom
+import * as RouterDom from 'react-router-dom';
 import { useProperties } from '../context/PropertyContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { Property } from '../types';
+
+const { Link } = RouterDom;
 
 interface PropertyGridProps {
   limit?: number;

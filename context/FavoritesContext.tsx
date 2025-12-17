@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Property } from '../types';
 import { supabase } from '../lib/supabase';
@@ -16,7 +17,6 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [favorites, setFavorites] = useState<Property[]>([]);
   const { user } = useAuth();
 
-  // Fetch favorites when user logs in
   useEffect(() => {
     if (user) {
         fetchFavorites();
@@ -28,7 +28,6 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
   const fetchFavorites = async () => {
     if (!user) return;
 
-    // Join favorites with properties table
     const { data, error } = await supabase
         .from('favorites')
         .select(`
@@ -42,9 +41,9 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
 
     if (data) {
-        // Transform the nested response back to Property[]
         const mappedFavorites = data.map((item: any) => {
             const p = item.property;
+            if (!p) return null;
             return {
                 id: p.id,
                 title: p.title,
@@ -60,9 +59,10 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
                 features: p.features,
                 purpose: p.purpose,
                 type: p.type,
-                city: p.city
+                city: p.city,
+                videoUrl: p.video_url
             } as Property;
-        });
+        }).filter(Boolean) as Property[];
         setFavorites(mappedFavorites);
     }
   };
@@ -70,11 +70,9 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
   const addFavorite = async (property: Property) => {
     if (!user) {
         alert("Faça login para salvar favoritos.");
-        // Optional: Redirect to login
         return;
     }
 
-    // Optimistic UI update
     setFavorites((prev) => [...prev, property]);
 
     const { error } = await supabase
@@ -83,7 +81,6 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     if (error) {
         console.error("Error adding favorite:", error);
-        // Revert optimistic update
         setFavorites((prev) => prev.filter(p => p.id !== property.id));
     }
   };
@@ -91,7 +88,6 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
   const removeFavorite = async (id: string) => {
     if (!user) return;
 
-    // Optimistic UI update
     setFavorites((prev) => prev.filter((p) => p.id !== id));
 
     const { error } = await supabase
@@ -101,7 +97,7 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     if (error) {
          console.error("Error removing favorite:", error);
-         fetchFavorites(); // Revert/Refresh
+         fetchFavorites();
     }
   };
 
