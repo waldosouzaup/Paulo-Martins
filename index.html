@@ -16,14 +16,11 @@
     <meta property="og:description" content="Encontre as melhores propriedades de alto padrão no Distrito Federal com assessoria personalizada." />
     <meta property="og:image" content="https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png" />
 
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:title" content="Paulo Martins | Corretor de Imóveis" />
-    <meta property="twitter:description" content="Assessoria exclusiva para imóveis de luxo em Brasília." />
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -50,32 +47,45 @@
         }
       }
     </script>
-    <style>
-      html { font-size: 104%; }
-      ::-webkit-scrollbar { width: 8px; }
-      ::-webkit-scrollbar-track { background: #0F0F0F; }
-      ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-      ::-webkit-scrollbar-thumb:hover { background: #D4AF37; }
-      h1, h2, h3, h4, h5, h6 { letter-spacing: -0.025em; font-weight: 700; }
-      .animate-fade-in { animation: fadeIn 0.8s ease-out forwards; }
-      @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    <style type="text/tailwindcss">
+      @layer base {
+        html { font-size: 104%; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0F0F0F; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #D4AF37; }
+        body { @apply bg-dark-950 text-white antialiased; }
+        h1, h2, h3, h4, h5, h6 { @apply tracking-tight font-bold; }
+      }
+      @layer utilities {
+        .animate-fade-in { 
+          animation: fadeIn 0.8s ease-out forwards; 
+        }
+        @keyframes fadeIn { 
+          from { opacity: 0; transform: translateY(10px); } 
+          to { opacity: 1; transform: translateY(0); } 
+        }
+      }
     </style>
-  <script type="importmap">
+
+    <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "vite": "https://esm.sh/vite@^7.3.0",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.10.1",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.88.0"
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.11.0",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom": "https://esm.sh/react-dom@^19.2.3",
+    "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.88.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
 }
 </script>
-</head>
-  <body class="bg-dark-950 text-white antialiased">
+  </head>
+  <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

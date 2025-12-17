@@ -1,1 +1,7 @@
-// PostCSS disabled
+
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
