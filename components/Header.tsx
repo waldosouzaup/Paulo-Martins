@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Heart, User } from 'lucide-react';
+import { Menu, X, Heart } from 'lucide-react';
 // Fix: Use namespace import to resolve "no exported member" errors from react-router-dom
 import * as RouterDom from 'react-router-dom';
 import { NavItem } from '../types';
 import { useFavorites } from '../context/FavoritesContext';
-import { useAuth } from '../context/AuthContext';
 
 const { Link, useLocation } = RouterDom;
 
@@ -20,7 +20,6 @@ export const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { favorites } = useFavorites();
-  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -77,15 +76,6 @@ export const Header: React.FC = () => {
                         </span>
                     )}
                 </Link>
-
-                {/* Login/Admin Icon */}
-                <Link 
-                    to={isAuthenticated ? "/admin/dashboard" : "/admin/login"} 
-                    className={`p-2 transition-colors ${location.pathname.startsWith('/admin') ? 'text-gold-400' : 'text-gray-300 hover:text-gold-400'}`}
-                    title={isAuthenticated ? "Painel Administrativo" : "Área do Corretor"}
-                >
-                    <User size={20} />
-                </Link>
             </div>
         </div>
 
@@ -122,17 +112,6 @@ export const Header: React.FC = () => {
             >
               <Heart size={18} />
               Favoritos ({favorites.length})
-            </Link>
-            <div className="h-px bg-white/10 my-2"></div>
-            <Link
-              to={isAuthenticated ? "/admin/dashboard" : "/admin/login"}
-              onClick={() => setMobileMenuOpen(false)}
-              className={`px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                location.pathname.startsWith('/admin') ? 'text-gold-400 bg-white/5' : 'text-gray-300'
-              }`}
-            >
-              <User size={18} />
-              {isAuthenticated ? "Painel Administrativo" : "Área do Corretor"}
             </Link>
         </div>
       )}

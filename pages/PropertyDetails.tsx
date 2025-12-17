@@ -5,6 +5,7 @@ import { BedDouble, Car, Scaling, MapPin, Check, Heart, ArrowLeft, Share2, X, Ch
 import { useProperties } from '../context/PropertyContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { SEOHelper } from '../components/SEOHelper';
+import { supabase } from '../lib/supabase';
 
 const { useParams, Link } = RouterDom;
 
@@ -22,7 +23,6 @@ export const PropertyDetails: React.FC = () => {
 
   useEffect(() => {
     if (property) {
-      // JSON-LD para SEO de Imóvel
       const jsonLd = {
         "@context": "https://schema.org/",
         "@type": "RealEstateListing",
@@ -75,15 +75,31 @@ export const PropertyDetails: React.FC = () => {
     e.preventDefault();
     setFormStatus('loading');
     try {
-      const response = await fetch('https://formspree.io/f/upconversiondigital@gmail.com', {
+      // 1. Salvar no Supabase
+      const { error: sbError } = await supabase
+        .from('contacts')
+        .insert([{
+          name: formData.nome,
+          phone: formData.telefone,
+          email: formData.email,
+          message: formData.mensagem,
+          property_id: property.id,
+          source: `Interesse: ${property.title}`
+        }]);
+
+      // 2. Notificar via Formspree (Removido o e-mail da URL que causa erro)
+      const response = await fetch('https://formspree.io/f/upconversiondigital', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ ...formData, _subject: `Interesse: ${property.title}` })
       });
-      if (response.ok) {
+
+      if (response.ok || !sbError) {
         setFormStatus('success');
         setFormData({ nome: '', email: '', telefone: '', mensagem: '' });
-      } else setFormStatus('error');
+      } else {
+        setFormStatus('error');
+      }
     } catch { setFormStatus('error'); }
   };
 
@@ -166,19 +182,42 @@ export const PropertyDetails: React.FC = () => {
           </div>
 
           <aside className="lg:col-span-1">
-            <div className="bg-dark-900 border border-white/5 rounded-2xl p-6 sticky top-32">
+            <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 sticky top-32">
                 <h3 className="text-xl text-gold-400 font-serif mb-6">Solicitar Informações</h3>
                 {formStatus === 'success' ? (
-                  <div className="text-center py-8"><CheckCircle size={48} className="text-green-500 mx-auto mb-4" /><p>Consulta enviada!</p></div>
+                  <div className="text-center py-8"><CheckCircle size={48} className="text-green-500 mx-auto mb-4" /><p className="text-white">Consulta enviada com sucesso!</p></div>
                 ) : (
-                  <form onSubmit={handleFormSubmit} className="space-y-4">
-                    <input required name="nome" value={formData.nome} onChange={handleInputChange} placeholder="Nome" className="w-full bg-dark-950 border border-white/10 rounded p-3 text-white" />
-                    <input required name="email" value={formData.email} onChange={handleInputChange} type="email" placeholder="Email" className="w-full bg-dark-950 border border-white/10 rounded p-3 text-white" />
-                    <input required name="telefone" value={formData.telefone} onChange={handleInputChange} type="tel" placeholder="Telefone" className="w-full bg-dark-950 border border-white/10 rounded p-3 text-white" />
-                    <textarea required name="mensagem" value={formData.mensagem} onChange={handleInputChange} rows={4} placeholder="Mensagem" className="w-full bg-dark-950 border border-white/10 rounded p-3 text-white" />
-                    <button type="submit" disabled={formStatus === 'loading'} className="w-full bg-gold-600 hover:bg-gold-500 text-white font-bold py-3 rounded uppercase tracking-widest text-sm flex justify-center">
-                        {formStatus === 'loading' ? <Loader2 className="animate-spin" /> : 'Agendar Visita'}
+                  <form onSubmit={handleFormSubmit} className="space-y-5">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Nome</label>
+                      <input required name="nome" value={formData.nome} onChange={handleInputChange} placeholder="Seu nome" className="w-full bg-black border border-white/10 rounded-xl p-4 text-white focus:border-gold-500 outline-none" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Email</label>
+                      <input required name="email" value={formData.email} onChange={handleInputChange} type="email" placeholder="seu@email.com" className="w-full bg-black border border-white/10 rounded-xl p-4 text-white focus:border-gold-500 outline-none" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Telefone</label>
+                      <input required name="telefone" value={formData.telefone} onChange={handleInputChange} type="tel" placeholder="(61) 9..." className="w-full bg-black border border-white/10 rounded-xl p-4 text-white focus:border-gold-500 outline-none" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Mensagem</label>
+                      <textarea required name="mensagem" value={formData.mensagem} onChange={handleInputChange} rows={4} placeholder="Tenho interesse neste imóvel..." className="w-full bg-black border border-white/10 rounded-xl p-4 text-white focus:border-gold-500 outline-none resize-none" />
+                    </div>
+
+                    {formStatus === 'error' && (
+                      <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-red-400 text-xs flex items-center gap-2">
+                        <AlertCircle size={16} /> Erro ao enviar. Tente o WhatsApp.
+                      </div>
+                    )}
+
+                    <button type="submit" disabled={formStatus === 'loading'} className="w-full bg-gold-600 hover:bg-gold-500 text-white font-bold py-4 rounded-xl uppercase tracking-widest text-xs flex justify-center items-center gap-2 transition-all">
+                        {formStatus === 'loading' ? <Loader2 className="animate-spin" size={18} /> : 'Agendar Visita'}
                     </button>
+                    
+                    <a href={`https://wa.me/5561991176958?text=Olá, tenho interesse no imóvel: ${property.title}`} target="_blank" className="block text-center text-xs text-gray-500 hover:text-gold-400 transition-colors mt-4">
+                      Ou fale agora pelo WhatsApp
+                    </a>
                   </form>
                 )}
             </div>
