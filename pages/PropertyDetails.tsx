@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import * as RouterDom from 'react-router-dom';
-import { BedDouble, Car, Scaling, MapPin, X, ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react';
+import { BedDouble, Car, Scaling, MapPin, X, ChevronLeft, ChevronRight, MessageCircle, Video, PlayCircle, Check } from 'lucide-react';
 import { useProperties } from '../context/PropertyContext';
 import { SEOHelper } from '../components/SEOHelper';
 
@@ -20,6 +20,25 @@ export const PropertyDetails: React.FC = () => {
 
   const allImages = property.images && property.images.length > 0 ? property.images : [property.imageUrl];
 
+  // Helper para converter URLs normais de vídeo em URLs de incorporação (embed)
+  const getEmbedUrl = (url: string) => {
+    if (!url) return '';
+    
+    // Suporte para YouTube (vários formatos)
+    const ytMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/);
+    if (ytMatch && ytMatch[1]) {
+      return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0`;
+    }
+    
+    // Suporte para Vimeo
+    const vimeoMatch = url.match(/(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(\d+)/);
+    if (vimeoMatch && vimeoMatch[1]) {
+      return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    }
+    
+    return url;
+  };
+
   // Configuração do WhatsApp
   const whatsappNumber = "5561991176958";
   const message = `Estou acessando o site e gostaria de mais informações sobre o imóvel: ${property.title}`;
@@ -34,7 +53,10 @@ export const PropertyDetails: React.FC = () => {
           src={property.imageUrl} 
           alt={property.title} 
           className="w-full h-full object-cover cursor-pointer" 
-          onClick={() => setLightboxOpen(true)} 
+          onClick={() => {
+            setCurrentImageIndex(0);
+            setLightboxOpen(true);
+          }} 
         />
         <div className="absolute inset-0 bg-gradient-to-t from-dark-950 via-transparent to-transparent"></div>
         <div className="absolute bottom-0 left-0 right-0 px-6 pb-12">
@@ -72,18 +94,77 @@ export const PropertyDetails: React.FC = () => {
 
             <div className="mb-12">
                 <h2 className="text-2xl text-white font-serif mb-4">Sobre o Imóvel</h2>
-                <p className="text-gray-400 leading-relaxed font-light">{property.description}</p>
+                <p className="text-gray-400 leading-relaxed font-light whitespace-pre-wrap">{property.description}</p>
             </div>
 
+            {/* Nova Seção: Diferenciais / Características (Features) */}
+            {property.features && property.features.length > 0 && (
+              <div className="mb-12">
+                  <h2 className="text-2xl text-white font-serif mb-6">Diferenciais</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 bg-white/5 p-8 rounded-2xl border border-white/5">
+                      {property.features.map((feature, idx) => (
+                          <div key={idx} className="flex items-center gap-3 text-gray-300">
+                              <div className="flex-shrink-0 w-5 h-5 rounded-full bg-gold-600/20 flex items-center justify-center">
+                                  <Check size={12} className="text-gold-400" />
+                              </div>
+                              <span className="text-sm font-light tracking-wide">{feature}</span>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+            )}
+
+            {/* Vídeo Incorporado */}
+            {property.videoUrl && (
+              <div className="mb-12">
+                  <h2 className="text-2xl text-white font-serif mb-6 flex items-center gap-3">
+                    <Video size={24} className="text-gold-400" />
+                    Tour em Vídeo
+                  </h2>
+                  <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-dark-900 border border-white/5 shadow-2xl">
+                      <iframe 
+                        src={getEmbedUrl(property.videoUrl)}
+                        className="absolute inset-0 w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        title={`Tour Virtual - ${property.title}`}
+                        frameBorder="0"
+                      ></iframe>
+                  </div>
+              </div>
+            )}
+
             <div className="mb-12">
-                <h2 className="text-2xl text-white font-serif mb-6">Galeria</h2>
-                <div className="grid grid-cols-2 gap-4">
-                    {allImages.slice(0, 4).map((img, idx) => (
-                        <div key={idx} className="aspect-video overflow-hidden rounded-xl cursor-pointer" onClick={() => {setCurrentImageIndex(idx); setLightboxOpen(true);}}>
-                            <img src={img} className="w-full h-full object-cover hover:scale-105 transition-all" alt={`Galeria ${idx}`} />
+                <h2 className="text-2xl text-white font-serif mb-6">Galeria de Fotos</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {allImages.slice(0, 8).map((img, idx) => (
+                        <div 
+                          key={idx} 
+                          className="aspect-square overflow-hidden rounded-xl cursor-pointer group border border-white/5" 
+                          onClick={() => {
+                            setCurrentImageIndex(idx); 
+                            setLightboxOpen(true);
+                          }}
+                        >
+                            <img 
+                              src={img} 
+                              className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500" 
+                              alt={`Foto ${idx + 1} - ${property.title}`} 
+                            />
                         </div>
                     ))}
                 </div>
+                {allImages.length > 8 && (
+                  <button 
+                    onClick={() => {
+                        setCurrentImageIndex(8);
+                        setLightboxOpen(true);
+                    }}
+                    className="text-gold-400 text-sm mt-4 w-full text-center py-4 border border-dashed border-white/10 rounded-xl hover:bg-white/5 transition-colors uppercase tracking-widest font-medium"
+                  >
+                    Ver mais {allImages.length - 8} fotos na galeria
+                  </button>
+                )}
             </div>
           </div>
 
@@ -116,10 +197,40 @@ export const PropertyDetails: React.FC = () => {
 
       {lightboxOpen && (
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center" onClick={() => setLightboxOpen(false)}>
-            <img src={allImages[currentImageIndex]} className="max-h-[85vh] max-w-full object-contain" alt="Fullscreen" />
-            <button className="absolute right-6 text-white p-2 hover:bg-white/10 rounded-full transition-colors" onClick={(e) => {e.stopPropagation(); setCurrentImageIndex((p) => (p + 1) % allImages.length);}}><ChevronRight size={48}/></button>
-            <button className="absolute left-6 text-white p-2 hover:bg-white/10 rounded-full transition-colors" onClick={(e) => {e.stopPropagation(); setCurrentImageIndex((p) => (p - 1 + allImages.length) % allImages.length);}}><ChevronLeft size={48}/></button>
-            <button className="absolute top-6 right-6 text-white p-2 hover:bg-white/10 rounded-full transition-colors" onClick={() => setLightboxOpen(false)}><X size={32}/></button>
+            <div className="relative w-full h-full flex items-center justify-center p-4">
+              <img src={allImages[currentImageIndex]} className="max-h-full max-w-full object-contain select-none" alt="Ampliada" />
+              
+              <button 
+                className="absolute right-4 md:right-8 text-white p-2 hover:bg-white/10 rounded-full transition-colors z-[110]" 
+                onClick={(e) => {
+                  e.stopPropagation(); 
+                  setCurrentImageIndex((p) => (p + 1) % allImages.length);
+                }}
+              >
+                <ChevronRight size={48}/>
+              </button>
+              
+              <button 
+                className="absolute left-4 md:left-8 text-white p-2 hover:bg-white/10 rounded-full transition-colors z-[110]" 
+                onClick={(e) => {
+                  e.stopPropagation(); 
+                  setCurrentImageIndex((p) => (p - 1 + allImages.length) % allImages.length);
+                }}
+              >
+                <ChevronLeft size={48}/>
+              </button>
+              
+              <button 
+                className="absolute top-4 right-4 md:top-8 md:right-8 text-white p-2 hover:bg-white/10 rounded-full transition-colors z-[110]" 
+                onClick={() => setLightboxOpen(false)}
+              >
+                <X size={32}/>
+              </button>
+
+              <div className="absolute bottom-8 left-0 right-0 text-center text-white/60 text-sm font-light tracking-widest">
+                {currentImageIndex + 1} / {allImages.length}
+              </div>
+            </div>
         </div>
       )}
     </div>

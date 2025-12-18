@@ -39,13 +39,13 @@ export const Hero: React.FC = () => {
 
   return (
     <div className="relative min-h-screen md:min-h-[110vh] flex flex-col justify-center items-center overflow-hidden bg-dark-950">
-      {/* Background Image - Luxury Apartment with 40% transparency (60% opacity) */}
+      {/* Background Image - Updated to a more stable Brasília High-Res Image (Catedral) */}
       <div className="absolute inset-0 z-0">
         <img
-          src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?q=80&w=2074&auto=format&fit=crop"
-          alt="Apartamento de Luxo"
+          src="https://images.unsplash.com/photo-1599427303058-f16cb9fc8568?q=80&w=2070&auto=format&fit=crop"
+          alt="Brasília - Arquitetura Icônica"
           loading="eager"
-          className="w-full h-full object-cover object-center scale-105 opacity-60"
+          className="w-full h-full object-cover object-center scale-105 opacity-50"
         />
         {/* Gradient Overlay for content readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-dark-950 via-dark-950/40 to-transparent"></div>

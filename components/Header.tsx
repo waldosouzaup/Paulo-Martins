@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, User } from 'lucide-react';
 // Fix: Use namespace import to resolve "no exported member" errors from react-router-dom
 import * as RouterDom from 'react-router-dom';
 import { NavItem } from '../types';
@@ -46,7 +46,7 @@ export const Header: React.FC = () => {
         </Link>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-4">
             <div className="flex items-center bg-black/20 backdrop-blur-sm rounded-full px-2 py-1 border border-white/5">
             {navItems.map((item) => (
                 <Link
@@ -62,15 +62,35 @@ export const Header: React.FC = () => {
                 </Link>
             ))}
             </div>
+
+            {/* Admin Icon Desktop */}
+            <Link 
+              to="/admin/dashboard" 
+              className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-gray-400 hover:text-gold-400 hover:border-gold-600/50 hover:bg-white/5 transition-all duration-300"
+              title="Painel Administrativo"
+            >
+              <User size={18} />
+            </Link>
         </div>
 
-        {/* Mobile Menu Button */}
-        <button 
-          className="md:hidden text-white"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        {/* Mobile Controls */}
+        <div className="flex items-center gap-4 md:hidden">
+          {/* Admin Icon Mobile */}
+          <Link 
+            to="/admin/dashboard" 
+            className="w-9 h-9 rounded-full border border-white/10 flex items-center justify-center text-gray-400"
+            title="Painel Administrativo"
+          >
+            <User size={16} />
+          </Link>
+
+          <button 
+            className="text-white"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu */}

@@ -1,17 +1,13 @@
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Base font size para Desktop */
+/* Base font size para Desktop - Aumentado em 2.5% (104 * 1.025 = 106.6%) */
 html { 
-  font-size: 104%; 
+  font-size: 106.6%; 
 }
 
-/* Redução de 3.5% para Mobile (104 * 0.965 = 100.36) */
+/* Redução proporcional para Mobile - Aumentado em 2.5% (100.36 * 1.025 = 102.87%) */
 @media (max-width: 768px) {
   html { 
-    font-size: 100.36%; 
+    font-size: 102.87%; 
   }
 }
 
