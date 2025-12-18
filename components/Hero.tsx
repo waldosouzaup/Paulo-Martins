@@ -38,37 +38,36 @@ export const Hero: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-[110vh] flex flex-col justify-center items-center overflow-hidden">
-      {/* Background Image - Updated to a darker luxury apartment */}
+    <div className="relative min-h-screen md:min-h-[110vh] flex flex-col justify-center items-center overflow-hidden bg-dark-950">
+      {/* Background Image - Luxury Apartment with 40% transparency (60% opacity) */}
       <div className="absolute inset-0 z-0">
         <img
-          src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto=format&fit=crop"
+          src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?q=80&w=2074&auto=format&fit=crop"
           alt="Apartamento de Luxo"
-          className="w-full h-full object-cover object-center scale-105"
+          loading="eager"
+          className="w-full h-full object-cover object-center scale-105 opacity-60"
         />
-        {/* Gradient Overlay */}
+        {/* Gradient Overlay for content readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-dark-950 via-dark-950/40 to-transparent"></div>
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-transparent h-32"></div>
-        {/* Extra darkness filter */}
-        <div className="absolute inset-0 bg-black/30"></div>
       </div>
 
       {/* Content */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 mt-20">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 mt-16 md:mt-10">
         
         {/* Hero Text */}
-        <div className="mb-16 max-w-3xl animate-fade-in-up">
-          <h1 className="text-5xl md:text-7xl font-sans font-bold text-white leading-tight mb-6">
+        <div className="mb-8 md:mb-16 max-w-3xl animate-fade-in-up">
+          <h1 className="text-[2.6rem] md:text-7xl font-sans font-bold text-white leading-tight mb-4 md:mb-6">
             Os Melhores Imóveis <br />
             <span className="text-white/90">da Região de Brasília</span>
           </h1>
-          <p className="text-xl text-gray-200 font-light tracking-wide border-l-2 border-gold-500 pl-4">
+          <p className="text-base md:text-xl text-gray-200 font-light tracking-wide border-l-2 border-gold-500 pl-4">
             Para morar ou investir, temos a melhor opção para você
           </p>
         </div>
 
         {/* Search Widget */}
-        <div className="bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl p-6 md:p-8 max-w-5xl shadow-2xl shadow-black/50 transform translate-y-8">
+        <div className="bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl p-6 md:p-8 max-w-5xl shadow-2xl shadow-black/50 transform md:translate-y-8">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             
             {/* Dropdown 1: Finalidade */}
@@ -79,7 +78,7 @@ export const Hero: React.FC = () => {
               <select 
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
-                className="w-full h-14 bg-white/5 border border-white/10 rounded-lg px-4 text-white appearance-none focus:outline-none focus:border-gold-500 transition-colors cursor-pointer hover:bg-white/10 text-sm"
+                className="w-full h-12 md:h-14 bg-white/5 border border-white/10 rounded-lg px-4 text-white appearance-none focus:outline-none focus:border-gold-500 transition-colors cursor-pointer hover:bg-white/10 text-sm"
               >
                 <option className="bg-dark-900" value="">Finalidade</option>
                 <option className="bg-dark-900" value="Venda">Comprar</option>
@@ -95,15 +94,12 @@ export const Hero: React.FC = () => {
               <select 
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="w-full h-14 bg-white/5 border border-white/10 rounded-lg px-4 text-white appearance-none focus:outline-none focus:border-gold-500 transition-colors cursor-pointer hover:bg-white/10 text-sm"
+                className="w-full h-12 md:h-14 bg-white/5 border border-white/10 rounded-lg px-4 text-white appearance-none focus:outline-none focus:border-gold-500 transition-colors cursor-pointer hover:bg-white/10 text-sm"
               >
                 <option className="bg-dark-900" value="">Tipo de Imóvel</option>
                 <option className="bg-dark-900" value="Casa">Casa</option>
                 <option className="bg-dark-900" value="Apartamento">Apartamento</option>
                 <option className="bg-dark-900" value="Cobertura">Cobertura</option>
-                <option className="bg-dark-900" value="Mansão">Mansão</option>
-                <option className="bg-dark-900" value="Lote/Terreno">Lote/Terreno</option>
-                <option className="bg-dark-900" value="Loft">Loft</option>
               </select>
             </div>
 
@@ -115,7 +111,7 @@ export const Hero: React.FC = () => {
               <select 
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                className="w-full h-14 bg-white/5 border border-white/10 rounded-lg px-4 text-white appearance-none focus:outline-none focus:border-gold-500 transition-colors cursor-pointer hover:bg-white/10 text-sm"
+                className="w-full h-12 md:h-14 bg-white/5 border border-white/10 rounded-lg px-4 text-white appearance-none focus:outline-none focus:border-gold-500 transition-colors cursor-pointer hover:bg-white/10 text-sm"
               >
                 <option className="bg-dark-900" value="">Cidade</option>
                 {availableCities.map(c => (
@@ -128,7 +124,7 @@ export const Hero: React.FC = () => {
             <div className="md:col-span-3">
               <button 
                 onClick={handleSearch}
-                className="w-full h-14 bg-gold-600 hover:bg-gold-500 text-white font-medium rounded-lg transition-all duration-300 shadow-[0_0_20px_rgba(197,160,40,0.3)] hover:shadow-[0_0_30px_rgba(197,160,40,0.5)] flex items-center justify-center gap-2"
+                className="w-full h-12 md:h-14 bg-gold-600 hover:bg-gold-500 text-white font-medium rounded-lg transition-all duration-300 shadow-[0_0_20px_rgba(197,160,40,0.3)] hover:shadow-[0_0_30px_rgba(197,160,40,0.5)] flex items-center justify-center gap-2"
               >
                 Buscar Imóveis
               </button>
@@ -145,7 +141,7 @@ export const Hero: React.FC = () => {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Busque por palavra-chave, código ou localização..."
-                        className="w-full h-12 bg-transparent border-b border-white/10 text-white pl-12 focus:outline-none focus:border-gold-500 transition-colors placeholder-gray-500 font-light"
+                        className="w-full h-10 md:h-12 bg-transparent border-b border-white/10 text-white pl-12 focus:outline-none focus:border-gold-500 transition-colors placeholder-gray-500 font-light text-sm"
                     />
                 </div>
             </div>

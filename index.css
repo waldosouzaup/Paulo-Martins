@@ -1,21 +1,38 @@
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Base font size para Desktop */
+html { 
+  font-size: 104%; 
+}
 
-html { font-size: 104%; }
+/* Redução de 3.5% para Mobile (104 * 0.965 = 100.36) */
+@media (max-width: 768px) {
+  html { 
+    font-size: 100.36%; 
+  }
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: #050505;
+  color: white;
+}
+
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: #0F0F0F; }
 ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #D4AF37; }
 
-h1, h2, h3, h4, h5, h6 { letter-spacing: -0.025em; font-weight: 700; }
-
-.animate-fade-in { 
-  animation: fadeIn 0.8s ease-out forwards; 
+h1, h2, h3, h4, h5, h6 { 
+  letter-spacing: -0.025em; 
+  font-weight: 700; 
 }
 
 @keyframes fadeIn { 
   from { opacity: 0; transform: translateY(10px); } 
   to { opacity: 1; transform: translateY(0); } 
+}
+
+.animate-fade-in { 
+  animation: fadeIn 0.8s ease-out forwards; 
 }

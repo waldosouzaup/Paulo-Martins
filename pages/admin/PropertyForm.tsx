@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 // Fix: Use namespace import to resolve "no exported member" errors from react-router-dom
 import * as RouterDom from 'react-router-dom';
@@ -160,9 +161,6 @@ export const PropertyForm: React.FC = () => {
                         <option value="Casa">Casa</option>
                         <option value="Apartamento">Apartamento</option>
                         <option value="Cobertura">Cobertura</option>
-                        <option value="Mansão">Mansão</option>
-                        <option value="Lote/Terreno">Lote/Terreno</option>
-                        <option value="Loft">Loft</option>
                     </select>
                 </div>
                 <div>

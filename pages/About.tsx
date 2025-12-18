@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export const About: React.FC = () => {
@@ -38,22 +39,22 @@ export const About: React.FC = () => {
             </div>
         </div>
 
-        {/* Stats / Highlights updated to match profile */}
+        {/* Stats / Highlights - Font size reduced by 4% (2xl -> 1.44rem, 3xl -> 1.8rem) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 py-16 border-y border-white/5">
             <div className="text-center group hover:bg-white/5 p-4 rounded-lg transition-colors">
-                <div className="text-2xl md:text-3xl font-serif text-white mb-2 group-hover:text-gold-400 transition-colors">CRECI</div>
+                <div className="text-[1.44rem] md:text-[1.8rem] font-serif text-white mb-2 group-hover:text-gold-400 transition-colors">CRECI</div>
                 <div className="text-xs text-gray-400 uppercase tracking-widest">28.844</div>
             </div>
             <div className="text-center group hover:bg-white/5 p-4 rounded-lg transition-colors">
-                <div className="text-2xl md:text-3xl font-serif text-white mb-2 group-hover:text-gold-400 transition-colors">Brasília</div>
+                <div className="text-[1.44rem] md:text-[1.8rem] font-serif text-white mb-2 group-hover:text-gold-400 transition-colors">Brasília</div>
                 <div className="text-xs text-gray-400 uppercase tracking-widest">Atuação Exclusiva</div>
             </div>
             <div className="text-center group hover:bg-white/5 p-4 rounded-lg transition-colors">
-                <div className="text-2xl md:text-3xl font-serif text-white mb-2 group-hover:text-gold-400 transition-colors">Suporte</div>
+                <div className="text-[1.44rem] md:text-[1.8rem] font-serif text-white mb-2 group-hover:text-gold-400 transition-colors">Suporte</div>
                 <div className="text-xs text-gray-400 uppercase tracking-widest">Personalizado</div>
             </div>
             <div className="text-center group hover:bg-white/5 p-4 rounded-lg transition-colors">
-                <div className="text-2xl md:text-3xl font-serif text-white mb-2 group-hover:text-gold-400 transition-colors">Segurança</div>
+                <div className="text-[1.44rem] md:text-[1.8rem] font-serif text-white mb-2 group-hover:text-gold-400 transition-colors">Segurança</div>
                 <div className="text-xs text-gray-400 uppercase tracking-widest">Total na Negociação</div>
             </div>
         </div>

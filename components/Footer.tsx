@@ -42,8 +42,8 @@ export const Footer: React.FC = () => {
                 <span className="text-[10px] text-gray-400 uppercase tracking-widest">CRECI 28.844</span>
               </div>
             </div>
-            <p className="text-gray-500 text-sm">
-              Especialista em mercado imobiliário de alto padrão. Atendimento personalizado para compra e venda de imóveis em Brasília.
+            <p className="text-gray-500 text-sm leading-relaxed">
+              Selecionamos as melhores oportunidades do Distrito Federal para clientes que buscam qualidade de vida, segurança e localização estratégica na capital.
             </p>
           </div>
 
@@ -80,7 +80,7 @@ export const Footer: React.FC = () => {
           </div>
         </div>
         <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-600">
-          <p>&copy; 2026 Paulo Martins Corretor. Imóveis de Luxo em Brasília.</p>
+          <p>&copy; 2026 Paulo Martins Corretor de Imóveis em Brasília.</p>
           <p>Criado por <a href="https://www.linkedin.com/in/waldoeller/" target="_blank" className="hover:text-gold-400 transition-colors">Waldo Eller</a></p>
         </div>
       </div>

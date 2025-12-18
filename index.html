@@ -6,34 +6,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Paulo Martins | Corretor de Imóveis de Luxo em Brasília</title>
     <meta name="description" content="Especialista em imóveis de alto padrão em Brasília. Mansões no Lago Sul, Coberturas na Asa Sul e Noroeste. Atendimento exclusivo com o corretor Paulo Martins (CRECI 28.844)." />
-    <meta name="keywords" content="corretor de imoveis brasilia, imoveis de luxo brasilia, comprar apartamento asa sul, mansao lago sul, noroese brasilia, paulo martins corretor, imobiliaria brasilia" />
+    <meta name="author" content="Paulo Martins Imóveis" />
+    <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://pmartinsimob.com.br/" />
-    
-    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta name="theme-color" content="#050505" />
+
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://pmartinsimob.com.br/" />
-    <meta property="og:title" content="Paulo Martins | Imóveis de Luxo em Brasília" />
-    <meta property="og:description" content="Encontre as melhores propriedades de alto padrão no Distrito Federal com assessoria personalizada." />
+    <meta property="og:title" content="Paulo Martins | Corretor de Imóveis de Luxo em Brasília" />
+    <meta property="og:description" content="Encontre as melhores oportunidades imobiliárias em Brasília com consultoria exclusiva." />
     <meta property="og:image" content="https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://pmartinsimob.com.br/" />
+    <meta property="twitter:title" content="Paulo Martins | Corretor de Imóveis de Luxo em Brasília" />
+    <meta property="twitter:description" content="Consultoria imobiliária de alto padrão na capital federal." />
+    <meta property="twitter:image" content="https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png" />
+    
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              gold: {
+                400: '#D4AF37',
+                500: '#C5A028',
+                600: '#B08D20',
+                900: '#5C4808',
+              },
+              dark: {
+                800: '#1A1A1A',
+                900: '#0F0F0F',
+                950: '#050505',
+              }
+            },
+            fontFamily: {
+              serif: ['"Inter"', 'sans-serif'],
+              sans: ['"Inter"', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-  <script type="importmap">
+    
+    <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.11.0",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react": "https://esm.sh/react@^19.0.0",
+    "react-dom": "https://esm.sh/react-dom@^19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@^19.0.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@^0.474.0",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.1.5",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.48.1",
     "vite": "https://esm.sh/vite@^7.3.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.88.0"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
-</head>
+  </head>
   <body class="bg-dark-950 text-white antialiased">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>

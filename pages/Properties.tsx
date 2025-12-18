@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { PropertyGrid } from '../components/PropertyGrid';
 import { useProperties } from '../context/PropertyContext';
@@ -98,12 +99,12 @@ export const Properties: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-12">
             <h1 className="text-4xl md:text-5xl font-serif text-white mb-4">
-                {hasUrlSearch ? 'Resultado da Busca' : 'Nossa Coleção'}
+                {hasUrlSearch ? 'Resultado da Busca' : 'Nossos Imóveis'}
             </h1>
             <p className="text-gray-400 font-light">
                 {hasUrlSearch 
                     ? `Encontramos ${filteredProperties.length} imóveis com seus critérios.`
-                    : 'Explore nossa selection exclusiva de imóveis de alto padrão.'}
+                    : 'Confira as melhores oportunidades'}
             </p>
         </div>
         

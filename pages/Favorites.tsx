@@ -17,7 +17,8 @@ export const Favorites: React.FC = () => {
             </p>
         </div>
 
-        <PropertyGrid showTitle={false} filterFavorites={true} />
+        {/* Fix: PropertyGrid does not have filterFavorites prop. Passing favorites directly to properties prop. */}
+        <PropertyGrid showTitle={false} properties={favorites} />
       </div>
     </div>
   );

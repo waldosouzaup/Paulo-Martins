@@ -1,3 +1,4 @@
+
 import React from 'react';
 // Fix: Use namespace import to resolve "no exported member" errors from react-router-dom
 import * as RouterDom from 'react-router-dom';
@@ -7,14 +8,12 @@ import { WhatsAppButton } from './components/WhatsAppButton';
 import { Home } from './pages/Home';
 import { About } from './pages/About';
 import { Properties } from './pages/Properties';
-import { Favorites } from './pages/Favorites';
 import { Contact } from './pages/Contact';
 import { PropertyDetails } from './pages/PropertyDetails';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { Login } from './pages/admin/Login';
 import { Dashboard } from './pages/admin/Dashboard';
 import { PropertyForm } from './pages/admin/PropertyForm';
-import { FavoritesProvider } from './context/FavoritesContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PropertyProvider } from './context/PropertyContext';
 
@@ -55,53 +54,50 @@ function App() {
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
-    <FavoritesProvider>
-        <div className="min-h-screen bg-dark-950 font-sans selection:bg-gold-600 selection:text-white flex flex-col">
-            <ScrollToTop />
-            {!isAdminRoute && <Header />}
-            <main className="flex-grow">
-                <Routes>
-                    {/* Public Routes */}
-                    <Route path="/" element={<Home />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/properties" element={<Properties />} />
-                    <Route path="/favorites" element={<Favorites />} />
-                    <Route path="/contact" element={<Contact />} />
-                    <Route path="/property/:id" element={<PropertyDetails />} />
-                    <Route path="/privacy" element={<PrivacyPolicy />} />
+    <div className="min-h-screen bg-dark-950 font-sans selection:bg-gold-600 selection:text-white flex flex-col">
+        <ScrollToTop />
+        {!isAdminRoute && <Header />}
+        <main className="flex-grow">
+            <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/properties" element={<Properties />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/property/:id" element={<PropertyDetails />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
 
-                    {/* Admin Routes */}
-                    <Route path="/admin/login" element={<Login />} />
-                    <Route 
-                        path="/admin/dashboard" 
-                        element={
-                            <ProtectedRoute>
-                                <Dashboard />
-                            </ProtectedRoute>
-                        } 
-                    />
-                    <Route 
-                        path="/admin/new" 
-                        element={
-                            <ProtectedRoute>
-                                <PropertyForm />
-                            </ProtectedRoute>
-                        } 
-                    />
-                    <Route 
-                        path="/admin/edit/:id" 
-                        element={
-                            <ProtectedRoute>
-                                <PropertyForm />
-                            </ProtectedRoute>
-                        } 
-                    />
-                </Routes>
-            </main>
-            {!isAdminRoute && <WhatsAppButton />}
-            {!isAdminRoute && <Footer />}
-        </div>
-    </FavoritesProvider>
+                {/* Admin Routes */}
+                <Route path="/admin/login" element={<Login />} />
+                <Route 
+                    path="/admin/dashboard" 
+                    element={
+                        <ProtectedRoute>
+                            <Dashboard />
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/admin/new" 
+                    element={
+                        <ProtectedRoute>
+                            <PropertyForm />
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/admin/edit/:id" 
+                    element={
+                        <ProtectedRoute>
+                            <PropertyForm />
+                        </ProtectedRoute>
+                    } 
+                />
+            </Routes>
+        </main>
+        {!isAdminRoute && <WhatsAppButton />}
+        {!isAdminRoute && <Footer />}
+    </div>
   );
 }
 

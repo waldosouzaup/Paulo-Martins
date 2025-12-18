@@ -1,10 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Heart } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 // Fix: Use namespace import to resolve "no exported member" errors from react-router-dom
 import * as RouterDom from 'react-router-dom';
 import { NavItem } from '../types';
-import { useFavorites } from '../context/FavoritesContext';
 
 const { Link, useLocation } = RouterDom;
 
@@ -19,7 +18,6 @@ export const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { favorites } = useFavorites();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -64,19 +62,6 @@ export const Header: React.FC = () => {
                 </Link>
             ))}
             </div>
-
-            {/* Icons Group */}
-            <div className="flex items-center gap-1 ml-4 border-l border-white/10 pl-4">
-                {/* Favorites Icon */}
-                <Link to="/favorites" className="relative p-2 text-gray-300 hover:text-gold-400 transition-colors">
-                    <Heart size={20} />
-                    {favorites.length > 0 && (
-                        <span className="absolute top-0 right-0 w-4 h-4 bg-gold-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full">
-                            {favorites.length}
-                        </span>
-                    )}
-                </Link>
-            </div>
         </div>
 
         {/* Mobile Menu Button */}
@@ -103,16 +88,6 @@ export const Header: React.FC = () => {
               {item.label}
             </Link>
           ))}
-           <Link
-              to="/favorites"
-              onClick={() => setMobileMenuOpen(false)}
-              className={`px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                location.pathname === '/favorites' ? 'text-gold-400 bg-white/5' : 'text-gray-300'
-              }`}
-            >
-              <Heart size={18} />
-              Favoritos ({favorites.length})
-            </Link>
         </div>
       )}
     </nav>

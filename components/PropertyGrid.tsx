@@ -1,9 +1,9 @@
+
 import React from 'react';
-import { BedDouble, Car, Scaling, Heart } from 'lucide-react';
+import { BedDouble, Car, Scaling } from 'lucide-react';
 // Fix: Use namespace import to resolve "no exported member" errors from react-router-dom
 import * as RouterDom from 'react-router-dom';
 import { useProperties } from '../context/PropertyContext';
-import { useFavorites } from '../context/FavoritesContext';
 import { Property } from '../types';
 
 const { Link } = RouterDom;
@@ -11,29 +11,17 @@ const { Link } = RouterDom;
 interface PropertyGridProps {
   limit?: number;
   showTitle?: boolean;
-  filterFavorites?: boolean;
   properties?: Property[];
 }
 
-export const PropertyGrid: React.FC<PropertyGridProps> = ({ limit, showTitle = true, filterFavorites = false, properties: customProperties }) => {
-  const { isFavorite, addFavorite, removeFavorite, favorites } = useFavorites();
+export const PropertyGrid: React.FC<PropertyGridProps> = ({ limit, showTitle = true, properties: customProperties }) => {
   const { properties: contextProperties } = useProperties(); 
   
-  let displayedProperties = customProperties || (filterFavorites ? favorites : contextProperties);
+  let displayedProperties = customProperties || contextProperties;
   
   if (limit) {
     displayedProperties = displayedProperties.slice(0, limit);
   }
-
-  const toggleFavorite = (e: React.MouseEvent, prop: Property) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (isFavorite(prop.id)) {
-      removeFavorite(prop.id);
-    } else {
-      addFavorite(prop);
-    }
-  };
 
   return (
     <section className="py-24 px-6 bg-dark-950 relative">
@@ -48,11 +36,6 @@ export const PropertyGrid: React.FC<PropertyGridProps> = ({ limit, showTitle = t
         {displayedProperties.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-white/10 rounded-xl">
             <p className="text-gray-400 text-lg">Nenhum imóvel encontrado.</p>
-            {filterFavorites && (
-                <Link to="/properties" className="inline-block mt-4 text-gold-400 hover:text-white transition-colors">
-                    Ver todos os imóveis &rarr;
-                </Link>
-            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -71,17 +54,6 @@ export const PropertyGrid: React.FC<PropertyGridProps> = ({ limit, showTitle = t
                   <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md border border-gold-600/30 px-3 py-1 rounded text-[10px] tracking-widest uppercase text-gold-400 font-semibold">
                     {prop.tag}
                   </div>
-
-                  {/* Favorite Button */}
-                   <button 
-                    onClick={(e) => toggleFavorite(e, prop)}
-                    className="absolute top-4 left-4 p-2 rounded-full bg-black/40 backdrop-blur-md hover:bg-gold-600/80 transition-all group/heart"
-                   >
-                     <Heart 
-                        size={18} 
-                        className={isFavorite(prop.id) ? "fill-gold-400 text-gold-400" : "text-white group-hover/heart:text-white"} 
-                     />
-                   </button>
                 </div>
 
                 {/* Content */}
