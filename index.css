@@ -1,4 +1,8 @@
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Base font size para Desktop */
 html { 
   font-size: 104%; 
