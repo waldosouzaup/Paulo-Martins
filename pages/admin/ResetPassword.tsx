@@ -22,6 +22,30 @@ export const ResetPassword: React.FC = () => {
   useEffect(() => {
     const checkActiveSession = async () => {
       try {
+        // Try parsing the tokens manually from URL first (to support HashRouter hashes correctly)
+        const url = window.location.href;
+        const accessMatch = url.match(/access_token=([^&]+)/);
+        const refreshMatch = url.match(/refresh_token=([^&]+)/);
+
+        if (accessMatch && refreshMatch) {
+          const accessToken = decodeURIComponent(accessMatch[1]);
+          const refreshToken = decodeURIComponent(refreshMatch[1]);
+          
+          console.log('[ResetPassword] Found tokens in the URL. Authenticating session manually.');
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (!error && data.session) {
+            setHasSession(true);
+            setCheckingSession(false);
+            return;
+          } else {
+            console.error('[ResetPassword] Failed setting manual session:', error);
+          }
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           setHasSession(true);
