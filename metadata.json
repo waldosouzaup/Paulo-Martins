@@ -1,5 +1,8 @@
 {
   "name": "Paulo Martins – Corretor de Imóveis em Brasília",
   "description": "Elevando o padrão de vida em Brasília com propriedades exclusivas e atendimento personalizado.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

@@ -11,6 +11,27 @@ export const Dashboard: React.FC = () => {
   const { properties, deleteProperty, connectionStatus, checkConnection, refreshProperties } = useProperties();
   const { logout } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [keepAliveData, setKeepAliveData] = useState<any>(null);
+  const [loadingKeepAlive, setLoadingKeepAlive] = useState(false);
+
+  const fetchKeepAliveStatus = async () => {
+    setLoadingKeepAlive(true);
+    try {
+      const response = await fetch('/api/keep-alive');
+      if (response.ok) {
+        const data = await response.json();
+        setKeepAliveData(data);
+      }
+    } catch (err) {
+      console.error('Erro ao consultar status de keep-alive:', err);
+    } finally {
+      setLoadingKeepAlive(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchKeepAliveStatus();
+  }, []);
 
   const handleTestConnection = async () => {
     setIsRefreshing(true);
@@ -137,6 +158,73 @@ export const Dashboard: React.FC = () => {
             <div className="p-20 text-center text-gray-500 flex flex-col items-center gap-3">
                 <Loader2 size={32} className="animate-spin text-gold-600" />
                 Sincronizando com o Supabase...
+            </div>
+          )}
+        </div>
+
+        {/* Painel Script Keep-Alive Supabase */}
+        <div className="mt-12 bg-dark-900 border border-white/5 rounded-xl p-6 shadow-2xl">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4 animate-fade-in" id="keep-alive-panel">
+            <div>
+              <h2 className="text-xl font-serif text-white flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-gold-400 animate-ping"></span>
+                Prevenção de Inatividade Supabase (Script Interno)
+              </h2>
+              <p className="text-sm text-gray-400 mt-1">
+                Uma rotina integrada que consulta o banco a cada 12 horas para manter o servidor gratuito sempre ativo e evitar pausa.
+              </p>
+            </div>
+            <button
+              onClick={fetchKeepAliveStatus}
+              disabled={loadingKeepAlive}
+              id="btn-trigger-ping"
+              className="px-4 py-2 bg-dark-800 hover:bg-dark-950 border border-white/10 rounded-lg text-xs text-gray-300 font-medium flex items-center gap-2 transition-all duration-200 self-start md:self-auto cursor-pointer hover:border-gold-400"
+            >
+              <RefreshCw size={14} className={loadingKeepAlive ? 'animate-spin text-gold-400' : ''} />
+              Pingar / Atualizar Agora
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white/[0.02] border border-white/5 p-4 rounded-lg flex flex-col justify-between" id="metric-interval">
+              <span className="text-gray-400 text-xs uppercase tracking-wider">Intervalo da Rotina</span>
+              <div className="text-xl font-medium text-white mt-1">A cada 12 horas</div>
+              <span className="text-xs text-emerald-500 mt-2 flex items-center gap-1">✔ Ativo e Executando</span>
+            </div>
+
+            <div className="bg-white/[0.02] border border-white/5 p-4 rounded-lg flex flex-col justify-between" id="metric-last-ping">
+              <span className="text-gray-400 text-xs uppercase tracking-wider">Último Ping Realizado</span>
+              <div className="text-sm font-mono text-gray-300 mt-1 truncate">
+                {keepAliveData?.currentCheck?.timestamp
+                  ? new Date(keepAliveData.currentCheck.timestamp).toLocaleString('pt-BR')
+                  : 'Carregando...'}
+              </div>
+              <span className={`text-xs mt-2 flex items-center gap-1 ${keepAliveData?.status === 'success' ? 'text-emerald-500 font-medium' : 'text-yellow-400'}`}>
+                {keepAliveData?.status === 'success' ? '● Sucesso: Banco Acordado' : '● Verificando status...'}
+              </span>
+            </div>
+
+            <div className="bg-white/[0.02] border border-white/5 p-4 rounded-lg flex flex-col justify-between" id="metric-query-result">
+              <span className="text-gray-400 text-xs uppercase tracking-wider">Resultado da Query</span>
+              <div className="text-sm font-medium text-gold-400 mt-1 truncate" title={keepAliveData?.currentCheck?.message}>
+                {keepAliveData?.currentCheck?.message || 'Nenhuma resposta ainda...'}
+              </div>
+              <span className="text-xs text-gray-500 mt-2">Acesso direto ao schema properties</span>
+            </div>
+          </div>
+
+          {/* Histórico Recente de Pings */}
+          {keepAliveData?.history && keepAliveData.history.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-white/5" id="keep-alive-logs">
+              <span className="text-gray-400 text-xs uppercase tracking-wider block mb-3 font-semibold">Histórico de Pings nesta sessão</span>
+              <div className="max-h-40 overflow-y-auto space-y-2 pr-2 font-mono text-xs">
+                {keepAliveData.history.map((log: any, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between p-2 rounded bg-white/[0.01] border border-white/[0.02] hover:bg-white/[0.03] transition-colors" id={`log-item-${idx}`}>
+                    <span className="text-gray-500">{new Date(log.timestamp).toLocaleString('pt-BR')}</span>
+                    <span className={log.success ? 'text-emerald-400' : 'text-red-400 font-medium'}>{log.message}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

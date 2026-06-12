@@ -81,7 +81,7 @@ export const Footer: React.FC = () => {
         </div>
         <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-600">
           <p>&copy; 2026 Paulo Martins Corretor de Imóveis em Brasília.</p>
-          <p>Criado por <a href="https://www.linkedin.com/in/waldoeller/" target="_blank" className="hover:text-gold-400 transition-colors">Waldo Eller</a></p>
+          <p>Criado por <a href="https://waldoeller.com" target="_blank" className="hover:text-gold-400 transition-colors">Waldo Eller</a></p>
         </div>
       </div>
     </footer>

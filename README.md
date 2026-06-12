@@ -1,44 +1,20 @@
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://pmartinsimob.com.br/we/pm/pm-00.png" />
+<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
 </div>
 
-# 01 Problema de Negócio
+# Run and deploy your AI Studio app
 
-Corretor de imóveis em Brasília com um grande volume de clientes em potencial que enfrentam dificuldades na criação de apresentações básicas dos imóveis disponíveis para venda.
+This contains everything you need to run your app locally.
 
-## 02 Contexto da Solução
+View your app in AI Studio: https://ai.studio/apps/471f242d-08e5-4f73-9885-681677aea07a
 
-O corretor de imóveis investe em campanhas de anúncios no Google e na Meta, porém, carece de uma página dedicada para detalhar as propriedades, como fotos, vídeos e informações sobre a infraestrutura dos locais.
+## Run Locally
 
-<img width="1200" height="475" alt="GHBanner" src="https://pmartinsimob.com.br/we/pm/pm-01.png" />
-
-## 03 Premissas Técnicas
-Conexão com o SUPABASE para administração backend dos imoveis.
-
-## 04 Estratégia de Implementação
-- Design claro e profissional para destacar imóveis em Brasília.
-- Presença online forte com foco em SEO local.
-- Aumentando visibilidade orgânica e oportunidades de negócio
-
-## 05 Resultados
-- Resultados Obtidos
-- Aceleração de 90% no tempo de apresentação dos imóveis.
-- Disponibilidade de conteúdo ininterrupta (24 horas por dia).
-- Simplificação da comunicação entre o cliente e o corretor.
-<img width="1200" height="475" alt="GHBanner" src="https://pmartinsimob.com.br/we/pm/pm-02.png" />
+**Prerequisites:**  Node.js
 
 
-## 06 Tecnologias Utilizadas
-### O projeto foi desenvolvido utilizando as seguintes ferramentas:
-- **Design**: Google Stitch.
-- **Desenvolvimento**: (Front-end e Back-end): Google AI Studio.
-- **Infraestrutura**: Gerenciamento da Conexão com o Banco de Dados.
-
-
-## 👤 Autor
-- Waldo Eller
-- LinkedIn: Waldo Eller (https://www.waldoeller.com)
-- Link Projeto: (https://paulomartinscorretor.netlify.app/)
-
-
-
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`

@@ -11,6 +11,7 @@ import { Properties } from './pages/Properties';
 import { Contact } from './pages/Contact';
 import { PropertyDetails } from './pages/PropertyDetails';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { AltoSobradinho } from './pages/AltoSobradinho';
 import { Login } from './pages/admin/Login';
 import { Dashboard } from './pages/admin/Dashboard';
 import { PropertyForm } from './pages/admin/PropertyForm';
@@ -66,6 +67,7 @@ function App() {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/property/:id" element={<PropertyDetails />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/alto-sobradinho" element={<AltoSobradinho />} />
 
                 {/* Admin Routes */}
                 <Route path="/admin/login" element={<Login />} />
