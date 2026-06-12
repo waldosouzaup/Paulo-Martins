@@ -3,6 +3,27 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Safe-guard window.fetch to be writable in sandboxed preview environments
+      (function() {
+        var originalFetch = window.fetch;
+        var currentFetch = originalFetch;
+        try {
+          Object.defineProperty(window, 'fetch', {
+            get: function() {
+              return currentFetch;
+            },
+            set: function(val) {
+              currentFetch = val;
+            },
+            configurable: true,
+            enumerable: true
+          });
+        } catch (e) {
+          console.warn("Unable to redefine window.fetch descriptor", e);
+        }
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Paulo Martins | Corretor de Imóveis de Luxo em Brasília</title>
     <meta name="description" content="Especialista em imóveis de alto padrão em Brasília. Mansões no Lago Sul, Coberturas na Asa Sul e Noroeste. Atendimento exclusivo com o corretor Paulo Martins (CRECI 28.844)." />

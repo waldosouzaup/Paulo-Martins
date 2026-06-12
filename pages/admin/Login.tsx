@@ -100,13 +100,21 @@ export const Login: React.FC = () => {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center flex flex-col space-y-3 items-center">
             <button 
                 onClick={() => { setIsSignUp(!isSignUp); setError(''); setMessage(''); }}
                 className="text-gray-400 hover:text-gold-400 text-sm transition-colors"
             >
                 {isSignUp ? 'Já tem uma conta? Entre aqui' : 'Não tem conta? Cadastre-se'}
             </button>
+            {!isSignUp && (
+              <RouterDom.Link 
+                  to="/admin/recover-password"
+                  className="text-gray-400 hover:text-gold-400 text-xs transition-colors"
+              >
+                  Esqueceu sua senha? Recuperar
+              </RouterDom.Link>
+            )}
         </div>
       </div>
     </div>

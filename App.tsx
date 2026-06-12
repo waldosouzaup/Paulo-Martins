@@ -13,6 +13,8 @@ import { PropertyDetails } from './pages/PropertyDetails';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { AltoSobradinho } from './pages/AltoSobradinho';
 import { Login } from './pages/admin/Login';
+import { RecoverPassword } from './pages/admin/RecoverPassword';
+import { ResetPassword } from './pages/admin/ResetPassword';
 import { Dashboard } from './pages/admin/Dashboard';
 import { PropertyForm } from './pages/admin/PropertyForm';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -71,6 +73,8 @@ function App() {
 
                 {/* Admin Routes */}
                 <Route path="/admin/login" element={<Login />} />
+                <Route path="/admin/recover-password" element={<RecoverPassword />} />
+                <Route path="/admin/reset-password" element={<ResetPassword />} />
                 <Route 
                     path="/admin/dashboard" 
                     element={
