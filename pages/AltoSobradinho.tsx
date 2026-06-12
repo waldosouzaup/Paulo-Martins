@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SEOHelper } from '../components/SEOHelper';
+import { supabase } from '../lib/supabase';
 import { 
   Home as HomeIcon, 
   Sparkles, 
@@ -16,13 +17,93 @@ import {
   ArrowRight,
   TrendingUp,
   FileText,
-  BadgeDollarSign
+  BadgeDollarSign,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2
 } from 'lucide-react';
 
 export const AltoSobradinho: React.FC = () => {
+  // Database states
+  const [dbData, setDbData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch configs from Supabase and listen to real-time changes
+  useEffect(() => {
+    const fetchPageData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('alto_sobradinho_page')
+          .select('*')
+          .eq('id', 'alto-sobradinho')
+          .maybeSingle();
+
+        if (error) {
+          console.error('Supabase error reading alto_sobradinho_page:', error);
+        } else if (data) {
+          setDbData(data);
+        }
+      } catch (err) {
+        console.warn('Erro ao carregar conteúdo da LP:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPageData();
+
+    // Set up Realtime channel subscription to auto-sync modifications without refreshing
+    const channel = supabase
+      .channel('alto_sobradinho_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'alto_sobradinho_page',
+          filter: 'id=eq.alto-sobradinho'
+        },
+        (payload) => {
+          console.log('Realtime update received for Alto Sobradinho LP:', payload);
+          if (payload.new && Object.keys(payload.new).length > 0) {
+            setDbData(payload.new);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Helpers to resolve configs or use defaults
+  const getVal = (field: string, defaultVal: string) => {
+    return (dbData && dbData[field]) ? dbData[field] : defaultVal;
+  };
+
+  const getList = (field: string, defaultVal: any) => {
+    if (!dbData || !dbData[field]) return defaultVal;
+    try {
+      return typeof dbData[field] === 'string' ? JSON.parse(dbData[field]) : dbData[field];
+    } catch (e) {
+      console.error('Erro ao ler lista do banco:', e);
+      return defaultVal;
+    }
+  };
+
   // Gallery states
   const [activeTab, setActiveTab] = useState<'apartamento' | 'lazer' | 'implatacao'>('apartamento');
-  
+  const [activePhotoIdx, setActivePhotoIdx] = useState<number>(0);
+  const [lightboxOpen, setLightboxOpen] = useState<boolean>(false);
+  const [lightboxIdx, setLightboxIdx] = useState<number>(0);
+
+  // Reset active photo index when activeTab changes
+  useEffect(() => {
+    setActivePhotoIdx(0);
+  }, [activeTab]);
+
   // Accordion FAQ states
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -40,8 +121,40 @@ export const AltoSobradinho: React.FC = () => {
   // Simple simulator states
   const [rendaFamiliar, setRendaFamiliar] = useState<number>(3500);
 
-  // FAQ mock data
-  const faqs = [
+  // Resolve All Dynamic Fields
+  const heroTitle = getVal('hero_title', 'Seu Novo Horizonte <br /> Tem Vista Privilegiada');
+  const heroSubtitle = getVal('hero_subtitle', 'Chegou a hora de morar com elegância e sofisticação em Sobradinho. Apartamentos de 2 quartos com ELEVADOR no ponto mais nobre da cidade, com varanda gourmet, área de lazer estilo Resort e financiamento facilitado.');
+  const heroImage = getVal('hero_image', 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1920&q=80');
+  const tagBadge = getVal('tag_badge', 'Novo Lançamento de Alto Padrão');
+
+  const stat1Value = getVal('stat1_value', 'Torres com');
+  const stat1Title = getVal('stat1_title', 'Elevador');
+  const stat2Value = getVal('stat2_value', 'Sacada Gourmet');
+  const stat2Title = getVal('stat2_title', 'Ou Quintal Garden');
+  const stat3Value = getVal('stat3_value', 'Lazer Club');
+  const stat3Title = getVal('stat3_title', '100% Equipado');
+
+  const highlight1Title = getVal('highlight1_title', 'Varanda Gourmet & Jardim');
+  const highlight1Desc = getVal('highlight1_desc', 'Opções com sacada integrada garantindo fluxo de vento e luz ou o exclusivo espaço Garden para criar pets e cultivar o seu jardim ao ar livre.');
+  const highlight2Title = getVal('highlight2_title', 'Torres com Elevador');
+  const highlight2Desc = getVal('highlight2_desc', 'Diga adeus ao esforço de carregar compras por escadas. Comodidade absoluta em todas as torres para sua família usufruir todos as áreas.');
+  const highlight3Title = getVal('highlight3_title', 'Segurança 24 horas');
+  const highlight3Desc = getVal('highlight3_desc', 'Guarita de controle avançada em condomínio fechado com monitoramento e circuito inteligente para descanso total das suas noites.');
+  const highlight4Title = getVal('highlight4_title', 'Pontal do Horizonte');
+  const highlight4Desc = getVal('highlight4_desc', 'Uma das melhores e mais deslumbrantes vistas panorâmicas da região norte do Distrito Federal. Ar puro e sossego do planalto central.');
+
+  const leisureText = getVal('leisure_text', 'Não há nada melhor do que reunir amigos para um churrasco no final de semana ou dar um mergulho refrescante sem sair do condomínio. No Residencial Alto do Horizonte, sua qualidade de vida atinge um padrão luxuoso com áreas comuns completas, entregues totalmente mobiliadas e decoradas.');
+  const leisureImage = getVal('leisure_image', 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=1200&q=80');
+  const leisureBulletsString = getVal('leisure_bullets', 'Piscinas Adulto & Infantil, Quiosques de Churrasqueiras, Salão de Festas Mobiliado, Academia Equipada, Quadra Esportiva Completa, Playground & Brinquedoteca, Espaço Pet Privativo, Praças e Boulevard Verde');
+  const leisureBullets = leisureBulletsString.split(',').map((it: string) => it.trim());
+
+  const locationText = getVal('location_text', 'Sobradinho é sinônimo de viver com qualidade de vida inigualável. O ponto mais alto da cidade traz vento fresco constante do cerrado, segurança de nível excelente e proximidade de toda a conveniência de comércios que sua rotina exige.');
+  const locationImage = getVal('location_image', 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&w=1200&q=80');
+
+  const whatsappNumber = getVal('whatsapp_number', '5561998522204');
+  const whatsappTextLead = getVal('whatsapp_text_lead', 'Olá Paulo Martins, estou interessado no Residencial Alto do Horizonte (Alto Sobradinho). Gostaria de simular crédito!');
+
+  const faqs = getList('faq_items', [
     {
       question: "Qual é a localização exata do Residencial Alto do Horizonte?",
       answer: "O empreendimento possui uma das localizações mais estratégicas e privilegiadas de Sobradinho, no ponto mais alto e com uma vista deslumbrante de todo o horizonte. Está situado em uma região totalmente pavimentada e segura, cercada de verde e com fácil acesso a escolas, supermercados, academias e comércios locais de Sobradinho, a poucos minutos do centro e da saída para o Plano Piloto."
@@ -66,11 +179,10 @@ export const AltoSobradinho: React.FC = () => {
       question: "O condomínio é fechado? Há guarita de segurança?",
       answer: "Sim, o Residencial Alto do Horizonte é um condomínio 100% fechado, equipado com guarita moderna para portaria e controle eletrônico de acesso 24h, circuito interno de monitoramento por câmeras de segurança e área totalmente protegida para a máxima paz de espírito de sua família."
     }
-  ];
+  ]);
 
-  // Gallery images with premium real estate aesthetics
   const gallery = {
-    apartamento: [
+    apartamento: getList('gallery_apartamento', [
       {
         url: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80",
         title: "Sala de Estar Integrada",
@@ -86,8 +198,8 @@ export const AltoSobradinho: React.FC = () => {
         title: "Quarto Principal Aconchegante",
         desc: "Uma suíte compacta com excelente circulação de ar, acabamento refinado e isolamento térmico."
       },
-    ],
-    lazer: [
+    ]),
+    lazer: getList('gallery_lazer', [
       {
         url: "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=1200&q=80",
         title: "Piscina Resort Climatizada",
@@ -103,8 +215,8 @@ export const AltoSobradinho: React.FC = () => {
         title: "Espaço Gourmet & Churrasqueiras",
         desc: "Quiosques luxuosos e equipados para fazer churrasco com amigos e familiares de forma privativa."
       }
-    ],
-    implatacao: [
+    ]),
+    implatacao: getList('gallery_implatacao', [
       {
         url: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80",
         title: "Fachada & Portaria Suprema",
@@ -115,8 +227,29 @@ export const AltoSobradinho: React.FC = () => {
         title: "Áreas Verdes & Praças",
         desc: "Percursos pavimentados envoltos em generosa vegetação natural para caminhadas no fim de tarde."
       }
-    ]
+    ])
   };
+
+  // Keyboard navigation for Lightbox
+  useEffect(() => {
+    if (!lightboxOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const currentGalleryItems = gallery[activeTab];
+      if (!currentGalleryItems || currentGalleryItems.length === 0) return;
+
+      if (e.key === 'Escape') {
+        setLightboxOpen(false);
+      } else if (e.key === 'ArrowRight') {
+        setLightboxIdx((prev) => (prev + 1) % currentGalleryItems.length);
+      } else if (e.key === 'ArrowLeft') {
+        setLightboxIdx((prev) => (prev - 1 + currentGalleryItems.length) % currentGalleryItems.length);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxOpen, activeTab, dbData]);
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,9 +260,9 @@ export const AltoSobradinho: React.FC = () => {
       setSubmitting(false);
       setSubmitted(true);
       
-      const whatsappText = `Olá Paulo Martins, estou interessado no Residencial Alto do Horizonte (Alto Sobradinho). Meu nome é *${formData.nome}*. Gostaria de mais informações e simular crédito! (${formData.interesse})`;
-      const encodedText = encodeURIComponent(whatsappText);
-      const whatsappUrl = `https://wa.me/5561998522204?text=${encodedText}`;
+      const parsedTextLead = whatsappTextLead.replace('Residencial Alto do Horizonte', `Residencial Alto do Horizonte. Meu nome é *${formData.nome}*. WhatsApp: ${formData.whatsapp}, E-mail: ${formData.email}. Interesse: ${formData.interesse}`);
+      const encodedText = encodeURIComponent(parsedTextLead);
+      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedText}`;
       
       // Delay to let the submit screen render beautiful checkmark
       setTimeout(() => {
@@ -164,7 +297,7 @@ export const AltoSobradinho: React.FC = () => {
         {/* Background Overlay styling for immersive visual */}
         <div className="absolute inset-0 z-0">
           <img 
-            src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1920&q=80" 
+            src={heroImage} 
             alt="Residencial Alto do Horizonte" 
             className="w-full h-full object-cover object-center opacity-30 transform scale-105 transition-transform duration-10000"
           />
@@ -175,16 +308,33 @@ export const AltoSobradinho: React.FC = () => {
         <div className="relative z-10 max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-7 space-y-6 text-left animate-fade-in">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-400/10 border border-gold-400/20 text-gold-400 text-xs font-semibold uppercase tracking-widest">
-              <Sparkles size={14} /> Novo Lançamento de Alto Padrão
+              <Sparkles size={14} /> {tagBadge}
             </span>
+            
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif text-white tracking-tight leading-tight">
-              Seu Novo Horizonte <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 via-gold-500 to-amber-200">
-                Tem Vista Privilegiada
-              </span>
+              {heroTitle.includes('<br />') ? (
+                <>
+                  {heroTitle.split('<br />')[0]} <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 via-gold-500 to-amber-200">
+                    {heroTitle.split('<br />')[1]}
+                  </span>
+                </>
+              ) : heroTitle.includes('<br>') ? (
+                <>
+                  {heroTitle.split('<br>')[0]} <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 via-gold-500 to-amber-200">
+                    {heroTitle.split('<br>')[1]}
+                  </span>
+                </>
+              ) : (
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 via-gold-500 to-amber-200">
+                  {heroTitle}
+                </span>
+              )}
             </h1>
+
             <p className="text-lg md:text-xl text-gray-300 font-light leading-relaxed max-w-2xl">
-              Chegou a hora de morar com elegância e sofisticação em Sobradinho. Apartamentos de <strong className="text-white font-semibold">2 quartos com ELEVADOR</strong> no ponto mais nobre da cidade, com varanda gourmet, área de lazer estilo Resort e financiamento facilitado.
+              {heroSubtitle}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -205,16 +355,16 @@ export const AltoSobradinho: React.FC = () => {
             {/* Micro Highlights Badges */}
             <div className="grid grid-cols-3 gap-4 pt-8 border-t border-white/5 text-gray-300">
               <div>
-                <span className="block text-xl md:text-2xl font-serif font-bold text-gold-400">Torres com</span>
-                <span className="text-xs uppercase tracking-widest text-gray-400">Elevador</span>
+                <span className="block text-xl md:text-2xl font-serif font-bold text-gold-400">{stat1Value}</span>
+                <span className="text-xs uppercase tracking-widest text-gray-400">{stat1Title}</span>
               </div>
               <div className="border-l border-white/10 pl-4">
-                <span className="block text-xl md:text-2xl font-serif font-bold text-gold-400">Sacada Gourmet</span>
-                <span className="text-xs uppercase tracking-widest text-gray-400">Ou Quintal Garden</span>
+                <span className="block text-xl md:text-2xl font-serif font-bold text-gold-400">{stat2Value}</span>
+                <span className="text-xs uppercase tracking-widest text-gray-400">{stat2Title}</span>
               </div>
               <div className="border-l border-white/10 pl-4">
-                <span className="block text-xl md:text-2xl font-serif font-bold text-gold-400">Lazer Club</span>
-                <span className="text-xs uppercase tracking-widest text-gray-400">100% Equipado</span>
+                <span className="block text-xl md:text-2xl font-serif font-bold text-gold-400">{stat3Value}</span>
+                <span className="text-xs uppercase tracking-widest text-gray-400">{stat3Title}</span>
               </div>
             </div>
           </div>
@@ -334,9 +484,9 @@ export const AltoSobradinho: React.FC = () => {
               <div className="w-12 h-12 rounded-lg bg-gold-400/10 flex items-center justify-center text-gold-400 group-hover:bg-gold-400 group-hover:text-black transition-all duration-300">
                 <Compass size={22} />
               </div>
-              <h3 className="text-lg font-bold text-white font-serif">Varanda Gourmet & Jardim</h3>
+              <h3 className="text-lg font-bold text-white font-serif">{highlight1Title}</h3>
               <p className="text-sm text-gray-400 font-light leading-relaxed">
-                Opções com sacada integrada garantindo fluxo de vento e luz ou o exclusivo espaço Garden para criar pets e cultivar o seu jardim ao ar livre.
+                {highlight1Desc}
               </p>
             </div>
 
@@ -344,9 +494,9 @@ export const AltoSobradinho: React.FC = () => {
               <div className="w-12 h-12 rounded-lg bg-gold-400/10 flex items-center justify-center text-gold-400 group-hover:bg-gold-400 group-hover:text-black transition-all duration-300">
                 <HomeIcon size={22} />
               </div>
-              <h3 className="text-lg font-bold text-white font-serif">Torres com Elevador</h3>
+              <h3 className="text-lg font-bold text-white font-serif">{highlight2Title}</h3>
               <p className="text-sm text-gray-400 font-light leading-relaxed">
-                Diga adeus ao esforço de carregar compras por escadas. Comodidade absoluta em todas as torres para sua família usufruir todos as áreas.
+                {highlight2Desc}
               </p>
             </div>
 
@@ -354,9 +504,9 @@ export const AltoSobradinho: React.FC = () => {
               <div className="w-12 h-12 rounded-lg bg-gold-400/10 flex items-center justify-center text-gold-400 group-hover:bg-gold-400 group-hover:text-black transition-all duration-300">
                 <ShieldCheck size={22} />
               </div>
-              <h3 className="text-lg font-bold text-white font-serif">Segurança 24 horas</h3>
+              <h3 className="text-lg font-bold text-white font-serif">{highlight3Title}</h3>
               <p className="text-sm text-gray-400 font-light leading-relaxed">
-                Guarita de controle avançada em condomínio fechado com monitoramento e circuito inteligente para descanso total das suas noites.
+                {highlight3Desc}
               </p>
             </div>
 
@@ -364,9 +514,9 @@ export const AltoSobradinho: React.FC = () => {
               <div className="w-12 h-12 rounded-lg bg-gold-400/10 flex items-center justify-center text-gold-400 group-hover:bg-gold-400 group-hover:text-black transition-all duration-300">
                 <Trees size={22} />
               </div>
-              <h3 className="text-lg font-bold text-white font-serif">Pontal do Horizonte</h3>
+              <h3 className="text-lg font-bold text-white font-serif">{highlight4Title}</h3>
               <p className="text-sm text-gray-400 font-light leading-relaxed">
-                Uma das melhores e mais deslumbrantes vistas panorâmicas da região norte do Distrito Federal. Ar puro e sossego do planalto central.
+                {highlight4Desc}
               </p>
             </div>
           </div>
@@ -407,39 +557,79 @@ export const AltoSobradinho: React.FC = () => {
           </div>
 
           {/* Active category sliding block */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-            <div className="lg:col-span-8 overflow-hidden rounded-2xl border border-white/5 relative aspect-video" id="main-gallery-view">
-              <img 
-                src={gallery[activeTab][0].url} 
-                alt={gallery[activeTab][0].title}
-                className="w-full h-full object-cover transition-opacity duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8">
-                <span className="text-xs uppercase tracking-widest text-gold-400 font-semibold">{gallery[activeTab][0].title}</span>
-                <p className="text-sm text-gray-300 mt-1 max-w-xl font-light">{gallery[activeTab][0].desc}</p>
-              </div>
-            </div>
-
-            {/* Right stack column layout */}
-            <div className="lg:col-span-4 flex flex-col gap-6 justify-between">
-              {gallery[activeTab].map((item, idx) => (
-                <div 
-                  key={idx}
-                  className="bg-dark-900 border border-white/5 hover:border-gold-400/20 rounded-xl p-4 flex gap-4 items-center transition-all duration-300 group cursor-pointer"
-                >
-                  <img 
-                    src={item.url} 
-                    alt={item.title} 
-                    className="w-20 h-20 rounded-lg object-cover border border-white/5 group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="min-w-0">
-                    <h4 className="text-white font-medium text-sm truncate font-serif">{item.title}</h4>
-                    <p className="text-xs text-gray-400 mt-1 line-clamp-2 font-light">{item.desc}</p>
+          {gallery[activeTab] && gallery[activeTab].length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+              {/* Main spotlight container */}
+              <div 
+                onClick={() => {
+                  setLightboxIdx(activePhotoIdx);
+                  setLightboxOpen(true);
+                }}
+                className="lg:col-span-8 overflow-hidden rounded-2xl border border-white/5 relative aspect-video cursor-pointer group/main-photo" 
+                id="main-gallery-view"
+                title="Clique para abrir em tela cheia"
+              >
+                <img 
+                  src={gallery[activeTab][activePhotoIdx]?.url} 
+                  alt={gallery[activeTab][activePhotoIdx]?.title}
+                  className="w-full h-full object-cover transition-all duration-700 ease-out group-hover/main-photo:scale-105"
+                />
+                
+                {/* Visual hover cue for zoom */}
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] opacity-0 group-hover/main-photo:opacity-100 transition-all duration-300 flex items-center justify-center">
+                  <div className="bg-dark-950/90 border border-gold-400/30 px-5 py-3 rounded-xl flex items-center gap-2 text-gold-400 shadow-xl transform scale-90 group-hover/main-photo:scale-100 transition-all duration-300">
+                    <Maximize2 size={18} className="animate-pulse" />
+                    <span className="text-xs uppercase tracking-wider font-bold font-sans">Visualizar em Tela Cheia</span>
                   </div>
                 </div>
-              ))}
+
+                {/* Info Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent flex flex-col justify-end p-6 md:p-8 pointer-events-none">
+                  <span className="text-xs uppercase tracking-widest text-gold-400 font-semibold bg-gold-400/10 self-start px-2 py-0.5 rounded border border-gold-400/20 mb-2">
+                    {activeTab === 'apartamento' ? 'Apartamento' : activeTab === 'lazer' ? 'Lazer Resort' : 'Fachada & Implantação'}
+                  </span>
+                  <h3 className="text-lg md:text-xl font-serif text-white">{gallery[activeTab][activePhotoIdx]?.title}</h3>
+                  <p className="text-sm text-gray-300 mt-1 max-w-xl font-light">{gallery[activeTab][activePhotoIdx]?.desc}</p>
+                </div>
+              </div>
+
+              {/* Right stack column layout */}
+              <div className="lg:col-span-4 flex flex-col gap-4 justify-between">
+                {gallery[activeTab].map((item, idx) => (
+                  <div 
+                    key={idx}
+                    onClick={() => setActivePhotoIdx(idx)}
+                    className={`bg-dark-900 border p-4 flex gap-4 items-center transition-all duration-300 group cursor-pointer rounded-xl ${
+                      activePhotoIdx === idx 
+                        ? 'border-gold-500 shadow-[0_0_20px_rgba(197,160,40,0.15)] bg-dark-850' 
+                        : 'border-white/5 hover:border-gold-400/30'
+                    }`}
+                  >
+                    <div className="relative overflow-hidden w-20 h-20 rounded-lg shrink-0 border border-white/10">
+                      <img 
+                        src={item.url} 
+                        alt={item.title} 
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      {activePhotoIdx === idx && (
+                        <div className="absolute inset-0 bg-gold-500/10 flex items-center justify-center">
+                          <div className="p-1 bg-gold-500 text-black rounded-full scale-90">
+                            <Check size={10} strokeWidth={3} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className={`font-serif text-sm transition-colors duration-200 ${activePhotoIdx === idx ? 'text-gold-400 font-bold' : 'text-white'}`}>
+                        {item.title}
+                      </h4>
+                      <p className="text-xs text-gray-400 mt-1 line-clamp-2 font-light leading-relaxed">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -452,59 +642,19 @@ export const AltoSobradinho: React.FC = () => {
               <h2 className="text-3xl md:text-4xl font-serif text-white">Privilégios de um Verdadeiro Clube de Lazer Privativo</h2>
               <div className="h-1 w-16 bg-gold-600 rounded-full"></div>
               <p className="text-gray-300 font-light leading-relaxed text-base pt-2 text-justify">
-                Não há nada melhor do que reunir amigos para um churrasco no final de semana ou dar um mergulho refrescante sem sair do condomínio. No <strong className="text-white font-medium">Residencial Alto do Horizonte</strong>, sua qualidade de vida atinge um padrão luxuoso com áreas comuns completas, entregues totalmente mobiliadas e decoradas.
+                {leisureText}
               </p>
 
               {/* Leisure check list bullet items */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                <div className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 rounded bg-gold-400/10 flex items-center justify-center text-gold-400 shrink-0 mt-0.5">
-                    <Check size={14} />
+                {leisureBullets.map((bullet, idx) => (
+                  <div key={idx} className="flex items-start gap-2.5">
+                    <div className="w-5 h-5 rounded bg-gold-400/10 flex items-center justify-center text-gold-400 shrink-0 mt-0.5">
+                      <Check size={14} />
+                    </div>
+                    <span className="text-sm text-gray-200">{bullet}</span>
                   </div>
-                  <span className="text-sm text-gray-200">Piscinas Adulto & Infantil</span>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 rounded bg-gold-400/10 flex items-center justify-center text-gold-400 shrink-0 mt-0.5">
-                    <Check size={14} />
-                  </div>
-                  <span className="text-sm text-gray-200">Quiosques de Churrasqueiras</span>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 rounded bg-gold-400/10 flex items-center justify-center text-gold-400 shrink-0 mt-0.5">
-                    <Check size={14} />
-                  </div>
-                  <span className="text-sm text-gray-200">Salão de Festas Mobiliado</span>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 rounded bg-gold-400/10 flex items-center justify-center text-gold-400 shrink-0 mt-0.5">
-                    <Check size={14} />
-                  </div>
-                  <span className="text-sm text-gray-200">Academia Equipada</span>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 rounded bg-gold-400/10 flex items-center justify-center text-gold-400 shrink-0 mt-0.5">
-                    <Check size={14} />
-                  </div>
-                  <span className="text-sm text-gray-200">Quadra Esportiva Completa</span>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 rounded bg-gold-400/10 flex items-center justify-center text-gold-400 shrink-0 mt-0.5">
-                    <Check size={14} />
-                  </div>
-                  <span className="text-sm text-gray-200">Playground & Brinquedoteca</span>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 rounded bg-gold-400/10 flex items-center justify-center text-gold-400 shrink-0 mt-0.5">
-                    <Check size={14} />
-                  </div>
-                  <span className="text-sm text-gray-200">Espaço Pet Privativo</span>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 rounded bg-gold-400/10 flex items-center justify-center text-gold-400 shrink-0 mt-0.5">
-                    <Check size={14} />
-                  </div>
-                  <span className="text-sm text-gray-200">Praças e Boulevard Verde</span>
-                </div>
+                ))}
               </div>
             </div>
 
@@ -512,7 +662,7 @@ export const AltoSobradinho: React.FC = () => {
               <div className="relative max-w-lg w-full">
                 <div className="absolute -inset-1.5 bg-gradient-to-r from-gold-500 to-amber-300 rounded-2xl blur opacity-30"></div>
                 <img 
-                  src="https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=1200&q=80" 
+                  src={leisureImage} 
                   alt="Piscinas e Lazer do Residencial Alto do Horizonte" 
                   className="rounded-2xl shadow-2xl relative z-10 border border-white/10 aspect-[4/3] object-cover"
                 />
@@ -599,7 +749,7 @@ export const AltoSobradinho: React.FC = () => {
                   href="#formulario-topo"
                   className="w-full py-4 bg-gold-400 hover:bg-gold-500 text-black text-center font-bold uppercase tracking-wider rounded-lg transition-all duration-300 block shadow-lg hover:shadow-gold-500/10"
                 >
-                  Fazer Minha Ficha Oficial no WhatsApp <ArrowRight size={16} className="inline ml-1" />
+                  Fazer My Ficha Oficial no WhatsApp <ArrowRight size={16} className="inline ml-1" />
                 </a>
               </div>
             </div>
@@ -613,7 +763,7 @@ export const AltoSobradinho: React.FC = () => {
           <div className="lg:col-span-5 relative">
             <div className="absolute -inset-1 bg-gradient-to-b from-gold-500 to-amber-700 rounded-3xl blur opacity-20"></div>
             <img 
-              src="https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&w=1200&q=80" 
+              src={locationImage} 
               alt="Localização Sobradinho Residencial Alto do Horizonte" 
               className="rounded-3xl border border-white/10 object-cover aspect-[4/5] shadow-2.5xl relative z-10 w-full"
             />
@@ -627,7 +777,7 @@ export const AltoSobradinho: React.FC = () => {
             </div>
 
             <p className="text-gray-300 font-light leading-relaxed text-base text-justify">
-              Sobradinho é sinônimo de viver com qualidade de vida inigualável. O ponto mais alto da cidade traz vento fresco constante do cerrado, segurança de nível excelente e proximidade de toda a conveniência de comércios que sua rotina exige.
+              {locationText}
             </p>
 
             {/* Travel metrics block */}
@@ -678,12 +828,13 @@ export const AltoSobradinho: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            {faqs.map((faq, index) => (
+            {faqs.map((faq: any, index: number) => (
               <div 
                 key={index}
                 className="border border-white/5 rounded-xl bg-dark-900 overflow-hidden transition-all duration-300"
               >
                 <button
+                  type="button"
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
                   className="w-full px-6 py-5 text-left flex items-center justify-between gap-4 font-serif text-white font-medium text-base md:text-lg focus:outline-none hover:bg-white/[0.02]"
                 >
@@ -730,7 +881,7 @@ export const AltoSobradinho: React.FC = () => {
 
             <div className="flex flex-col gap-3 relative z-10 w-full md:w-auto shrink-0">
               <a 
-                href="https://wa.me/5561998522204?text=Olá%20Paulo,%20gostaria%20de%20agendar%20uma%20reunião%20online%20para%20conhecer%20os%20detalhes%2520do%20Residencial%20Alto%20do%20Horizonte."
+                href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent("Olá Paulo, gostaria de agendar uma reunião online para conhecer os detalhes do Residencial Alto do Horizonte.")}`}
                 target="_blank"
                 referrerPolicy="no-referrer"
                 className="px-6 py-4 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-emerald-600/10"
@@ -738,7 +889,7 @@ export const AltoSobradinho: React.FC = () => {
                 <MessageSquare size={16} /> Falar WhatsApp
               </a>
               <a 
-                href="tel:5561998522204"
+                href={`tel:${whatsappNumber}`}
                 className="px-6 py-4 bg-transparent border border-white/10 hover:border-gold-400/50 hover:bg-white/5 rounded-lg text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
               >
                 <PhoneCall size={16} /> Telefonar Agendamento
@@ -747,6 +898,109 @@ export const AltoSobradinho: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* --- LIGHTBOX MODAL --- */}
+      {lightboxOpen && gallery[activeTab] && gallery[activeTab].length > 0 && (
+        <div 
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 backdrop-blur-md transition-all duration-300"
+          onClick={() => setLightboxOpen(false)}
+        >
+          {/* Top Bar with metadata and Close button */}
+          <div className="absolute top-0 inset-x-0 h-20 bg-gradient-to-b from-black/90 to-transparent flex items-center justify-between px-6 z-10">
+            <div className="text-left">
+              <span className="text-gold-400 font-sans text-[10px] uppercase tracking-widest block font-bold mb-1">
+                {activeTab === 'apartamento' ? 'Apartamento' : activeTab === 'lazer' ? 'Lazer Resort' : 'Fachada & Implantação'}
+              </span>
+              <h4 className="text-white text-sm md:text-base font-serif font-medium">
+                {gallery[activeTab][lightboxIdx]?.title}
+              </h4>
+            </div>
+            
+            <button
+              onClick={() => setLightboxOpen(false)}
+              className="p-2 rounded-full bg-white/5 border border-white/10 hover:border-gold-400/50 text-gray-300 hover:text-white transition-all bg-black/40 cursor-pointer shadow-lg flex items-center justify-center"
+              title="Fechar (Esc)"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Navigation Arrows & Main Image */}
+          <div className="relative w-full max-w-5xl px-4 flex items-center justify-center h-[60vh] md:h-[65vh]">
+            {/* Previous Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIdx((prev) => (prev - 1 + gallery[activeTab].length) % gallery[activeTab].length);
+              }}
+              className="absolute left-4 md:left-6 p-2.5 md:p-3 rounded-full bg-white/5 border border-white/10 hover:border-gold-400 hover:scale-105 text-white hover:text-black hover:bg-gold-400 transition-all cursor-pointer z-20 shadow-lg"
+              title="Anterior (Seta Esquerda)"
+            >
+              <ChevronLeft size={24} />
+            </button>
+
+            {/* Main Interactive Zoomable Photo */}
+            <div 
+              className="relative max-h-full max-w-full flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={gallery[activeTab][lightboxIdx]?.url}
+                alt={gallery[activeTab][lightboxIdx]?.title}
+                className="max-h-[60vh] md:max-h-[65vh] max-w-[85vw] md:max-w-[75vw] lg:max-w-4xl object-contain rounded-lg border border-white/10 shadow-2xl transition-all duration-300 select-none"
+              />
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIdx((prev) => (prev + 1) % gallery[activeTab].length);
+              }}
+              className="absolute right-4 md:right-6 p-2.5 md:p-3 rounded-full bg-white/5 border border-white/10 hover:border-gold-400 hover:scale-105 text-white hover:text-black hover:bg-gold-400 transition-all cursor-pointer z-20 shadow-lg"
+              title="Próxima (Seta Direita)"
+            >
+              <ChevronRight size={24} />
+            </button>
+          </div>
+
+          {/* Slide Description and Thumbnails Strip */}
+          <div 
+            className="w-full max-w-3xl px-6 text-center space-y-4 pt-4 z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-gray-300 text-xs md:text-sm font-light leading-relaxed max-w-xl mx-auto drop-shadow-sm min-h-[40px]">
+              {gallery[activeTab][lightboxIdx]?.desc}
+            </p>
+
+            {/* Index Counter */}
+            <div className="text-[10px] font-mono tracking-widest text-gray-500 uppercase">
+              Foto {lightboxIdx + 1} de {gallery[activeTab].length}
+            </div>
+
+            {/* Horizontal Mini Thumbnail strip */}
+            <div className="flex justify-center gap-2.5 pt-2 flex-wrap">
+              {gallery[activeTab].map((item: any, idx: number) => (
+                <button
+                  key={idx}
+                  onClick={() => setLightboxIdx(idx)}
+                  className={`relative w-12 h-9 md:w-16 md:h-11 rounded-md overflow-hidden border transition-all duration-300 cursor-pointer ${
+                    lightboxIdx === idx
+                      ? 'border-gold-400 scale-105 shadow-[0_0_10px_rgba(197,160,40,0.4)] opacity-100'
+                      : 'border-white/10 hover:border-white/30 opacity-40 hover:opacity-75'
+                  }`}
+                >
+                  <img
+                    src={item.url}
+                    alt={item.title}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

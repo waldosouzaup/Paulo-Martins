@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import * as RouterDom from 'react-router-dom';
-import { Plus, Trash2, LogOut, Edit, RefreshCw, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Plus, Trash2, LogOut, Edit, RefreshCw, CheckCircle, XCircle, Loader2, Code, FileText } from 'lucide-react';
 import { useProperties } from '../../context/PropertyContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -81,18 +81,36 @@ export const Dashboard: React.FC = () => {
             <h1 className="text-3xl font-serif text-white">Painel Administrativo</h1>
             <p className="text-gray-400">Gerencie seus imóveis exclusivos</p>
           </div>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/admin/tags"
+              className="bg-dark-800 hover:bg-dark-700 border border-white/10 hover:border-gold-500/50 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all text-sm"
+            >
+              <Code size={16} className="text-gold-400" /> Tags & Rastreamento
+            </Link>
+            <Link
+              to="/admin/alto-sobradinho"
+              className="bg-dark-800 hover:bg-dark-700 border border-white/10 hover:border-gold-500/50 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all text-sm"
+            >
+              <FileText size={16} className="text-gold-400" /> Editar LP Alto Sobradinho
+            </Link>
+            <Link
+              to="/admin/about"
+              className="bg-dark-800 hover:bg-dark-700 border border-white/10 hover:border-gold-500/50 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all text-sm"
+            >
+              <Edit size={16} className="text-gold-400" /> Editar Página 'Sobre'
+            </Link>
             <Link
               to="/admin/new"
-              className="bg-gold-600 hover:bg-gold-500 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-[0_0_15px_rgba(197,160,40,0.2)]"
+              className="bg-gold-600 hover:bg-gold-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-[0_0_15px_rgba(197,160,40,0.2)] text-sm"
             >
-              <Plus size={18} /> Novo Imóvel
+              <Plus size={16} /> Novo Imóvel
             </Link>
             <button
                 onClick={logout}
-                className="bg-dark-800 hover:bg-red-900/20 text-gray-300 hover:text-red-400 border border-white/10 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                className="bg-dark-800 hover:bg-red-900/20 text-gray-300 hover:text-red-400 border border-white/10 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
             >
-                <LogOut size={18} /> Sair
+                <LogOut size={16} /> Sair
             </button>
           </div>
         </div>
