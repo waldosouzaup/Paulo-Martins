@@ -62,6 +62,109 @@ async function startServer() {
     });
   });
 
+  // Serve robots.txt for AI crawlers and search indexers
+  app.get("/robots.txt", (req, res) => {
+    res.type("text/plain");
+    const domain = req.headers.host || "pmartinsimob.com.br";
+    res.send(`User-agent: *
+Allow: /
+Sitemap: https://${domain}/sitemap.xml
+`);
+  });
+
+  // Serve dynamic, rich sitemap.xml for full-coverage indexing
+  app.get("/sitemap.xml", async (req, res) => {
+    res.type("application/xml");
+    const domain = req.headers.host || "pmartinsimob.com.br";
+    const protocol = req.headers["x-forwarded-proto"] === "https" ? "https" : "http";
+    const baseUrl = `${protocol}://${domain}`;
+
+    let propertyUrls = "";
+    try {
+      const { data: properties } = await supabaseServer.from('properties').select('id');
+      if (properties && properties.length > 0) {
+        properties.forEach(prop => {
+          propertyUrls += `
+  <url>
+    <loc>${baseUrl}/#/property/${prop.id}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/property/${prop.id}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+        });
+      }
+    } catch (err) {
+      console.error("Error generating dynamic sitemap properties:", err);
+    }
+
+    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Core pages -->
+  <url>
+    <loc>${baseUrl}/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/#/about</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/about</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/#/properties</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/properties</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/#/contact</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/contact</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/#/privacy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/privacy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/#/alto-sobradinho</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/alto-sobradinho</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  ${propertyUrls}
+</urlset>`;
+
+    res.send(sitemap.trim());
+  });
+
   // Vite middleware setup
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

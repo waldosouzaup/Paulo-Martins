@@ -5,6 +5,18 @@ import { supabase } from '../lib/supabase';
 
 type ConnectionStatus = 'checking' | 'online' | 'offline';
 
+export interface TrackingSettings {
+  id: string;
+  google_tag_id: string;
+  meta_pixel_id: string;
+  head_scripts: string;
+  body_scripts: string;
+  home_hero_image: string;
+  whatsapp_number?: string;
+  instagram_link?: string;
+  broker_image?: string;
+}
+
 interface PropertyContextType {
   properties: Property[];
   loading: boolean;
@@ -14,6 +26,8 @@ interface PropertyContextType {
   deleteProperty: (id: string) => Promise<void>;
   refreshProperties: () => Promise<void>;
   checkConnection: () => Promise<ConnectionStatus>;
+  trackingSettings: TrackingSettings | null;
+  refreshTrackingSettings: () => Promise<void>;
 }
 
 const PropertyContext = createContext<PropertyContextType | undefined>(undefined);
@@ -22,6 +36,36 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('checking');
+  const [trackingSettings, setTrackingSettings] = useState<TrackingSettings | null>(null);
+
+  const fetchTrackingSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tracking_settings')
+        .select('*')
+        .eq('id', 'global-tracking')
+        .maybeSingle();
+
+      if (error) {
+        console.warn('Erro ao buscar tracking_settings:', error);
+      }
+      
+      const current = data || {};
+      setTrackingSettings({
+        id: current.id || 'global-tracking',
+        google_tag_id: current.google_tag_id || '',
+        meta_pixel_id: current.meta_pixel_id || '',
+        head_scripts: current.head_scripts || '',
+        body_scripts: current.body_scripts || '',
+        home_hero_image: current.home_hero_image || 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=2070&auto=format&fit=crop',
+        whatsapp_number: current.whatsapp_number || '5561991176958',
+        instagram_link: current.instagram_link || '#',
+        broker_image: current.broker_image || 'https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png'
+      });
+    } catch (err) {
+      console.error('Falha geral ao buscar tracking_settings:', err);
+    }
+  };
 
   const fetchProperties = async () => {
     setLoading(true);
@@ -80,6 +124,7 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   useEffect(() => {
     fetchProperties();
+    fetchTrackingSettings();
   }, []);
 
   const handleError = (title: string, error: any) => {
@@ -169,7 +214,9 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
       updateProperty, 
       deleteProperty, 
       refreshProperties: fetchProperties,
-      checkConnection 
+      checkConnection,
+      trackingSettings,
+      refreshTrackingSettings: fetchTrackingSettings
     }}>
       {children}
     </PropertyContext.Provider>

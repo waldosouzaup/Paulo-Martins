@@ -3,7 +3,6 @@ import { SEOHelper } from '../components/SEOHelper';
 import { supabase } from '../lib/supabase';
 import { 
   Home as HomeIcon, 
-  Sparkles, 
   Compass, 
   ShieldCheck, 
   Trees, 
@@ -153,6 +152,7 @@ export const AltoSobradinho: React.FC = () => {
 
   const whatsappNumber = getVal('whatsapp_number', '5561998522204');
   const whatsappTextLead = getVal('whatsapp_text_lead', 'Olá Paulo Martins, estou interessado no Residencial Alto do Horizonte (Alto Sobradinho). Gostaria de simular crédito!');
+  const brokerImage = getVal('broker_image', 'https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png');
 
   const faqs = getList('faq_items', [
     {
@@ -288,8 +288,10 @@ export const AltoSobradinho: React.FC = () => {
   return (
     <div className="pt-20 bg-dark-950 text-white min-h-screen">
       <SEOHelper 
-        title="Alto Sobradinho - Residencial Alto do Horizonte" 
-        description="Conheça o Residencial Alto do Horizonte em Sobradinho. Lindos apartamentos de 2 quartos com elevador, varanda gourmet, lazer resort e a qualidade Paulo Martins." 
+        title={heroTitle ? `${heroTitle.replace(/<br\s*\/?>/gi, ' ')} - Residencial Alto do Horizonte` : "Alto Sobradinho - Residencial Alto do Horizonte"} 
+        description={heroSubtitle || "Conheça o Residencial Alto do Horizonte em Sobradinho. Lindos apartamentos de 2 quartos com elevador, varanda gourmet, lazer resort e a qualidade Paulo Martins."} 
+        image={heroImage}
+        urlPath="/#/alto-sobradinho"
       />
 
       {/* --- HERO PREMIUM --- */}
@@ -308,7 +310,7 @@ export const AltoSobradinho: React.FC = () => {
         <div className="relative z-10 max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-7 space-y-6 text-left animate-fade-in">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-400/10 border border-gold-400/20 text-gold-400 text-xs font-semibold uppercase tracking-widest">
-              <Sparkles size={14} /> {tagBadge}
+              {tagBadge}
             </span>
             
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif text-white tracking-tight leading-tight">
@@ -865,7 +867,7 @@ export const AltoSobradinho: React.FC = () => {
             
             <div className="flex flex-col md:flex-row items-center gap-6 relative z-10 max-w-2xl text-center md:text-left">
               <img 
-                src="https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png" 
+                src={brokerImage} 
                 alt="Corretor Paulo Martins" 
                 className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-2 border-gold-400 bg-dark-800"
               />

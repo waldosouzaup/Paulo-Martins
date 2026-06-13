@@ -1,9 +1,28 @@
 
 import React from 'react';
 import { Phone, Mail, MapPin, MessageCircle } from 'lucide-react';
+import { useProperties } from '../context/PropertyContext';
+
+const formatPhoneNumber = (num: string) => {
+  const cleaned = num.replace(/\D/g, '');
+  if (cleaned.length === 11) {
+    const ddd = cleaned.substring(0, 2);
+    const firstPart = cleaned.substring(2, 3) + ' ' + cleaned.substring(3, 7);
+    const secondPart = cleaned.substring(7);
+    return `+55 (${ddd}) ${firstPart}-${secondPart}`;
+  } else if (cleaned.length === 13) {
+    const ddd = cleaned.substring(2, 4);
+    const firstPart = cleaned.substring(4, 5) + ' ' + cleaned.substring(5, 9);
+    const secondPart = cleaned.substring(9);
+    return `+55 (${ddd}) ${firstPart}-${secondPart}`;
+  }
+  return num;
+};
 
 export const Contact: React.FC = () => {
-  const whatsappNumber = "5561991176958";
+  const { trackingSettings } = useProperties();
+  const whatsappNumber = trackingSettings?.whatsapp_number ? trackingSettings.whatsapp_number.replace(/\D/g, '') : "5561991176958";
+  const displayPhone = trackingSettings?.whatsapp_number ? formatPhoneNumber(trackingSettings.whatsapp_number) : "+55 (61) 9 9117-6958";
   const whatsappMessage = encodeURIComponent("Estou acessando o site e gostaria de mais informacoes");
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
@@ -24,7 +43,7 @@ export const Contact: React.FC = () => {
                         <div>
                             <h3 className="text-white text-xl font-bold mb-1">Telefone</h3>
                             <a href={`tel:+${whatsappNumber}`} className="text-gray-300 text-lg hover:text-gold-400 transition-colors block">
-                                +55 (61) 9 9117-6958
+                                {displayPhone}
                             </a>
                         </div>
                     </div>

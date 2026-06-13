@@ -5,6 +5,7 @@ import { BedDouble, Car, Scaling } from 'lucide-react';
 import * as RouterDom from 'react-router-dom';
 import { useProperties } from '../context/PropertyContext';
 import { Property } from '../types';
+import { formatPropertyTag } from '../lib/utils';
 
 const { Link } = RouterDom;
 
@@ -40,7 +41,7 @@ export const PropertyGrid: React.FC<PropertyGridProps> = ({ limit, showTitle = t
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {displayedProperties.map((prop) => (
-              <Link to={`/property/${prop.id}`} key={prop.id} className="group relative bg-dark-900 border border-white/5 rounded-xl overflow-hidden hover:border-gold-600/50 transition-all duration-500 hover:shadow-[0_0_30px_rgba(176,141,32,0.1)] flex flex-col">
+              <Link to={`/property/${prop.id}`} key={prop.id} className="group relative bg-dark-900 border border-white/5 rounded-xl overflow-hidden hover:border-gold-600/50 transition-all duration-500 hover:shadow-[0_0_30px_rgba(176,141,32,0.1)] flex flex-col transform hover:-translate-y-1.5 hover:scale-[1.02]">
                 {/* Image Container */}
                 <div className="relative h-64 overflow-hidden">
                   <img 
@@ -52,7 +53,7 @@ export const PropertyGrid: React.FC<PropertyGridProps> = ({ limit, showTitle = t
                   
                   {/* Badge */}
                   <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md border border-gold-600/30 px-3 py-1 rounded text-[10px] tracking-widest uppercase text-gold-400 font-semibold">
-                    {prop.tag}
+                    {formatPropertyTag(prop.tag)}
                   </div>
                 </div>
 

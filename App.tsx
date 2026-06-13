@@ -5,6 +5,7 @@ import * as RouterDom from 'react-router-dom';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { WhatsAppButton } from './components/WhatsAppButton';
+import { CookieConsent } from './components/CookieConsent';
 import { Home } from './pages/Home';
 import { About } from './pages/About';
 import { Properties } from './pages/Properties';
@@ -12,6 +13,7 @@ import { Contact } from './pages/Contact';
 import { PropertyDetails } from './pages/PropertyDetails';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { AltoSobradinho } from './pages/AltoSobradinho';
+import { NotFound } from './pages/NotFound';
 import { Login } from './pages/admin/Login';
 import { RecoverPassword } from './pages/admin/RecoverPassword';
 import { ResetPassword } from './pages/admin/ResetPassword';
@@ -249,10 +251,14 @@ function App() {
                         </ProtectedRoute>
                     } 
                 />
+                
+                {/* Catch-all 404 Route */}
+                <Route path="*" element={<NotFound />} />
             </Routes>
         </main>
         {!isAdminRoute && <WhatsAppButton />}
         {!isAdminRoute && <Footer />}
+        {!isAdminRoute && <CookieConsent />}
     </div>
   );
 }

@@ -26,6 +26,7 @@ interface PageData {
   hero_subtitle: string;
   hero_image: string;
   tag_badge: string;
+  broker_image: string;
   
   stat1_title: string;
   stat1_value: string;
@@ -94,6 +95,7 @@ const DEFAULT_LP: PageData = {
 
   whatsapp_number: '5561998522204',
   whatsapp_text_lead: 'Olá Paulo Martins, estou interessado no Residencial Alto do Horizonte (Alto Sobradinho). Gostaria de simular crédito!',
+  broker_image: 'https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png',
 
   gallery_apartamento: [
     {
@@ -236,6 +238,7 @@ export const AltoSobradinhoForm: React.FC = () => {
 
             whatsapp_number: data.whatsapp_number || DEFAULT_LP.whatsapp_number,
             whatsapp_text_lead: data.whatsapp_text_lead || DEFAULT_LP.whatsapp_text_lead,
+            broker_image: data.broker_image || DEFAULT_LP.broker_image,
 
             gallery_apartamento: parseList(data.gallery_apartamento, DEFAULT_LP.gallery_apartamento),
             gallery_lazer: parseList(data.gallery_lazer, DEFAULT_LP.gallery_lazer),
@@ -398,6 +401,7 @@ export const AltoSobradinhoForm: React.FC = () => {
 
           whatsapp_number: formData.whatsapp_number.trim(),
           whatsapp_text_lead: formData.whatsapp_text_lead.trim(),
+          broker_image: formData.broker_image.trim(),
 
           gallery_apartamento: JSON.stringify(formData.gallery_apartamento),
           gallery_lazer: JSON.stringify(formData.gallery_lazer),
@@ -408,6 +412,9 @@ export const AltoSobradinhoForm: React.FC = () => {
       if (saveError) {
         if (saveError.code === '42P01') {
           throw new Error('A tabela "alto_sobradinho_page" não existe no Supabase. Execute o SQL abaixo para criá-la!');
+        }
+        if (saveError.code === '42703') {
+          throw new Error('A coluna "broker_image" está faltando na sua tabela "alto_sobradinho_page". Execute o comando seguinte no SQL Editor do seu Supabase para criá-la:\n\nALTER TABLE alto_sobradinho_page ADD COLUMN IF NOT EXISTS broker_image TEXT;');
         }
         throw saveError;
       }
@@ -428,6 +435,7 @@ CREATE TABLE IF NOT EXISTS alto_sobradinho_page (
   hero_subtitle TEXT,
   hero_image TEXT,
   tag_badge TEXT,
+  broker_image TEXT,
   
   stat1_title TEXT,
   stat1_value TEXT,
@@ -632,6 +640,41 @@ CREATE POLICY "Permitir tudo a autenticados para sobradinho" ON alto_sobradinho_
                       <div>
                         <label className="block text-gray-400 text-xs uppercase tracking-widest mb-1.5 font-semibold">Mala Direta / WhatsApp Text Inicial</label>
                         <input name="whatsapp_text_lead" value={formData.whatsapp_text_lead} onChange={handleChange} className="w-full bg-dark-950 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-gold-500 text-sm" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Broker Image Configuration */}
+                  <div className="border-t border-white/5 pt-6 space-y-4">
+                    <div className="border-b border-white/5 pb-2">
+                      <h4 className="text-white text-sm uppercase tracking-wider flex items-center gap-2">
+                        <ImageIcon size={14} className="text-gold-400" /> Foto do Corretor (Rodapé da Landing Page)
+                      </h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                      <div className="md:col-span-2 space-y-3">
+                        <div>
+                          <label className="block text-gray-400 text-xs uppercase tracking-widest mb-1.5 font-semibold">Caminho da Foto do Corretor</label>
+                          <input name="broker_image" value={formData.broker_image} onChange={handleChange} className="w-full bg-dark-950 border border-white/10 rounded-lg px-4 py-2 text-xs text-white focus:outline-none" />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <label className="bg-dark-800 hover:bg-dark-700 text-[10px] text-white font-bold py-1.5 px-3 rounded cursor-pointer border border-white/10">
+                            {uploadingImage === 'broker_image' ? (
+                              <span className="flex items-center gap-1"><Loader2 className="animate-spin" size={11} /> Processando...</span>
+                            ) : 'Upload Nova Foto'}
+                            <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'broker_image')} disabled={uploadingImage === 'broker_image'} className="hidden" />
+                          </label>
+                          <span className="text-gray-500 text-[10px]">Recomendado: foto em formato quadrado</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-center">
+                        <div className="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-2 border-gold-400 bg-dark-800 flex items-center justify-center">
+                          {formData.broker_image ? (
+                            <img src={formData.broker_image} className="w-full h-full object-cover" alt="Corretor Preview" />
+                          ) : (
+                            <span className="text-gray-500 text-xs">Sem foto</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

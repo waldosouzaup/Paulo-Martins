@@ -264,6 +264,7 @@ export const PropertyForm: React.FC = () => {
                     <label className="block text-gray-400 text-xs uppercase tracking-widest mb-2 font-semibold">Destaque (Tag)</label>
                     <select name="tag" value={formData.tag} onChange={handleChange} className="w-full bg-dark-950 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-gold-500 focus:outline-none">
                         <option value="NOVO">NOVO</option>
+                        <option value="LANÇAMENTO">LANÇAMENTO</option>
                         <option value="PREMIUM">PREMIUM</option>
                         <option value="EXCLUSIVO">EXCLUSIVO</option>
                         <option value="OPORTUNIDADE">OPORTUNIDADE</option>

@@ -1,10 +1,14 @@
 
 import React from 'react';
+import { useProperties } from '../context/PropertyContext';
 
 export const WhatsAppButton: React.FC = () => {
+  const { trackingSettings } = useProperties();
+  const rawWhatsapp = trackingSettings?.whatsapp_number ? trackingSettings.whatsapp_number.replace(/\D/g, '') : '5561991176958';
+
   return (
     <a
-      href="https://wa.me/5561991176958"
+      href={`https://wa.me/${rawWhatsapp}`}
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white md:p-[15.2px] p-[14.44px] rounded-full shadow-[0_0_20px_rgba(37,211,102,0.4)] hover:bg-[#20bd5a] hover:scale-110 hover:shadow-[0_0_30px_rgba(37,211,102,0.6)] transition-all duration-300 group flex items-center justify-center"

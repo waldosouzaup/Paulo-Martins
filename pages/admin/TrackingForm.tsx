@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import * as RouterDom from 'react-router-dom';
-import { ArrowLeft, Save, Loader2, Database, Check, AlertCircle, Code, Shield } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Database, Check, AlertCircle, Code, Shield, Image as ImageIcon, Phone, Instagram } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { SEOHelper } from '../../components/SEOHelper';
+import { useProperties } from '../../context/PropertyContext';
 
 const { useNavigate } = RouterDom;
 
@@ -12,6 +13,9 @@ interface TrackingData {
   meta_pixel_id: string;
   head_scripts: string;
   body_scripts: string;
+  home_hero_image: string;
+  whatsapp_number?: string;
+  instagram_link?: string;
 }
 
 const DEFAULT_TRACKING: TrackingData = {
@@ -19,17 +23,22 @@ const DEFAULT_TRACKING: TrackingData = {
   google_tag_id: '',
   meta_pixel_id: '',
   head_scripts: '',
-  body_scripts: ''
+  body_scripts: '',
+  home_hero_image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=2070&auto=format&fit=crop',
+  whatsapp_number: '5561991176958',
+  instagram_link: 'https://www.instagram.com/paulomartins_imoveis/'
 };
 
 export const TrackingForm: React.FC = () => {
   const navigate = useNavigate();
+  const { refreshTrackingSettings } = useProperties();
   const [formData, setFormData] = useState<TrackingData>(DEFAULT_TRACKING);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [showSqlHelp, setShowSqlHelp] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Load existing tracking configuration from Supabase
   useEffect(() => {
@@ -42,14 +51,18 @@ export const TrackingForm: React.FC = () => {
           .maybeSingle();
 
         if (error) {
-          console.warn('Erro ao carregar tabela tracking_settings. Usando valores em branco:', error);
+          console.warn('Erro ao carregar tabela tracking_settings. Usando valores padrão:', error);
         } else if (data) {
           setFormData({
             id: data.id || 'global-tracking',
             google_tag_id: data.google_tag_id || '',
             meta_pixel_id: data.meta_pixel_id || '',
             head_scripts: data.head_scripts || '',
-            body_scripts: data.body_scripts || ''
+            body_scripts: data.body_scripts || '',
+            home_hero_image: data.home_hero_image || DEFAULT_TRACKING.home_hero_image,
+            whatsapp_number: data.whatsapp_number || DEFAULT_TRACKING.whatsapp_number,
+            instagram_link: data.instagram_link || DEFAULT_TRACKING.instagram_link,
+            broker_image: data.broker_image || DEFAULT_TRACKING.broker_image
           });
         }
       } catch (err) {
@@ -67,6 +80,61 @@ export const TrackingForm: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const [uploadingBrokerImage, setUploadingBrokerImage] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetField: 'home_hero_image' | 'broker_image' = 'home_hero_image') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (targetField === 'broker_image') {
+      setUploadingBrokerImage(true);
+    } else {
+      setUploadingImage(true);
+    }
+    
+    setError('');
+    setMessage('');
+
+    try {
+      // Auto-create bucket 'properties' just in case
+      try {
+        await supabase.storage.createBucket('properties', { public: true });
+      } catch (err) {
+        console.log('Bucket already exists or has duplicate rights:', err);
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const rawFileName = file.name.split('.').slice(0, -1).join('.').replace(/[^a-zA-Z0-9]/g, '_');
+      const uniqueId = Math.random().toString(36).substring(2, 11);
+      const fileName = `${targetField}_${rawFileName}_${uniqueId}.${fileExt}`;
+
+      const { data, error: uploadError } = await supabase.storage
+        .from('properties')
+        .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+      if (uploadError) {
+        throw new Error(
+          `Falha no upload: ${uploadError.message}. Certifique-se de que o bucket 'properties' existe e é público.`
+        );
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('properties')
+        .getPublicUrl(fileName);
+
+      setFormData(prev => ({ ...prev, [targetField]: publicUrl }));
+      setMessage(targetField === 'broker_image' ? 'Foto do corretor enviada com sucesso!' : 'Imagem do Hero enviada com sucesso!');
+    } catch (err: any) {
+      setError(err.message || 'Erro ao enviar a imagem.');
+    } finally {
+      if (targetField === 'broker_image') {
+        setUploadingBrokerImage(false);
+      } else {
+        setUploadingImage(false);
+      }
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -81,34 +149,52 @@ export const TrackingForm: React.FC = () => {
           google_tag_id: formData.google_tag_id.trim(),
           meta_pixel_id: formData.meta_pixel_id.trim(),
           head_scripts: formData.head_scripts.trim(),
-          body_scripts: formData.body_scripts.trim()
+          body_scripts: formData.body_scripts.trim(),
+          home_hero_image: formData.home_hero_image.trim(),
+          whatsapp_number: formData.whatsapp_number ? formData.whatsapp_number.trim() : '5561991176958',
+          instagram_link: formData.instagram_link ? formData.instagram_link.trim() : 'https://www.instagram.com/paulomartins_imoveis/',
+          broker_image: formData.broker_image ? formData.broker_image.trim() : 'https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png'
         });
 
       if (saveError) {
         if (saveError.code === '42P01') {
           throw new Error('A tabela "tracking_settings" não existe no seu banco de dados Supabase. Execute o comando SQL em seu painel para criá-la!');
         }
+        if (saveError.code === '42703') {
+          throw new Error('Uma ou mais colunas de contato estão faltando na sua tabela "tracking_settings" (como "home_hero_image", "whatsapp_number", "instagram_link" ou "broker_image"). Execute o seguinte comando no SQL Editor do seu Supabase para adicioná-las:\n\nALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS home_hero_image TEXT;\nALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;\nALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS instagram_link TEXT;\nALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS broker_image TEXT;');
+        }
         throw saveError;
       }
 
-      setMessage('Configurações de rastreamento e tags salvas com sucesso!');
+      await refreshTrackingSettings();
+      setMessage('Configurações salvas com sucesso!');
     } catch (err: any) {
-      console.error('Erro ao salvar tags:', err);
+      console.error('Erro ao salvar configurações:', err);
       setError(err.message || 'Erro ao salvar as configurações.');
     } finally {
       setSaving(false);
     }
   };
 
-  const sqlCode = `-- Execute este comando SQL em seu Painel do Supabase -> SQL Editor para criar a tabela de tags
+  const sqlCode = `-- Execute este comando SQL em seu Painel do Supabase -> SQL Editor para criar ou atualizar a tabela de tags
 CREATE TABLE IF NOT EXISTS tracking_settings (
   id TEXT PRIMARY KEY,
   google_tag_id TEXT,
   meta_pixel_id TEXT,
   head_scripts TEXT,
   body_scripts TEXT,
+  home_hero_image TEXT,
+  whatsapp_number TEXT,
+  instagram_link TEXT,
+  broker_image TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Se a tabela já existia e faltam os novos campos, execute:
+ALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS home_hero_image TEXT;
+ALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;
+ALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS instagram_link TEXT;
+ALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS broker_image TEXT;
 
 -- Habilitar RLS (Opcional)
 ALTER TABLE tracking_settings ENABLE ROW LEVEL SECURITY;
@@ -194,6 +280,156 @@ CREATE POLICY "Permitir tudo para administradores autenticados" ON tracking_sett
                   )}
                 </div>
               )}
+
+              {/* Imagem do Hero Principal */}
+              <div className="border-b border-white/5 pb-6">
+                <h3 className="text-white font-serif text-lg mb-4 flex items-center gap-2">
+                  <ImageIcon size={18} className="text-gold-400" />
+                  Imagem do Hero Principal (Página Inicial)
+                </h3>
+                <p className="text-xs text-gray-400 mb-6 leading-relaxed">
+                  Defina a imagem de fundo em destaque que aparece no cabeçalho imersivo da página principal. Você pode fazer o upload ou colocar o caminho (URL) de uma imagem externa.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center bg-black/20 p-4 rounded-xl border border-white/5">
+                  <div className="md:col-span-2 space-y-3">
+                    <div>
+                      <label className="block text-gray-400 text-xs uppercase tracking-widest mb-1.5 font-semibold">Caminho da Imagem (URL)</label>
+                      <input 
+                        name="home_hero_image" 
+                        value={formData.home_hero_image} 
+                        onChange={handleChange} 
+                        className="w-full bg-dark-950 border border-white/10 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-gold-500" 
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <label className="bg-dark-800 hover:bg-dark-700 text-[11px] text-white font-bold py-1.5 px-3 rounded cursor-pointer border border-white/10 transition-all flex items-center gap-1.5">
+                        {uploadingImage ? (
+                          <>
+                            <Loader2 className="animate-spin text-gold-400" size={11} />
+                            Enviando...
+                          </>
+                        ) : 'Upload Nova Foto'}
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={(e) => handleImageUpload(e, 'home_hero_image')} 
+                          disabled={uploadingImage} 
+                          className="hidden" 
+                        />
+                      </label>
+                      <span className="text-gray-500 text-[10px]">Recomendado: formato paisagem e alta resolução (ex: Unsplash)</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="w-full h-24 md:h-28 rounded-lg overflow-hidden border border-white/10 bg-dark-950 flex items-center justify-center shadow-inner relative group">
+                      {formData.home_hero_image ? (
+                        <>
+                          <img src={formData.home_hero_image} className="w-full h-full object-cover" alt="Hero Preview" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] text-white font-medium">Pré-visualização</div>
+                        </>
+                      ) : (
+                        <span className="text-gray-500 text-xs">Sem foto</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Foto do Corretor */}
+              <div className="border-b border-white/5 pb-6">
+                <h3 className="text-white font-serif text-lg mb-4 flex items-center gap-2">
+                  <ImageIcon size={18} className="text-gold-400" />
+                  Foto do Corretor (Sessão "Por que escolher Paulo Martins")
+                </h3>
+                <p className="text-xs text-gray-400 mb-6 leading-relaxed">
+                  Defina a imagem do corretor em destaque que aparece no bloco "Por que escolher Paulo Martins?" na página inicial. Você pode fazer o upload de uma imagem ou colocar o caminho (URL) de uma imagem existente.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center bg-black/20 p-4 rounded-xl border border-white/5">
+                  <div className="md:col-span-2 space-y-3">
+                    <div>
+                      <label className="block text-gray-400 text-xs uppercase tracking-widest mb-1.5 font-semibold">Caminho da Imagem do Corretor (URL)</label>
+                      <input 
+                        name="broker_image" 
+                        value={formData.broker_image || ''} 
+                        onChange={handleChange} 
+                        className="w-full bg-dark-950 border border-white/10 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-gold-500" 
+                        placeholder="Ex: https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <label className="bg-dark-800 hover:bg-dark-700 text-[11px] text-white font-bold py-1.5 px-3 rounded cursor-pointer border border-white/10 transition-all flex items-center gap-1.5">
+                        {uploadingBrokerImage ? (
+                          <>
+                            <Loader2 className="animate-spin text-gold-400" size={11} />
+                            Enviando...
+                          </>
+                        ) : 'Upload Nova Foto'}
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={(e) => handleImageUpload(e, 'broker_image')} 
+                          disabled={uploadingBrokerImage} 
+                          className="hidden" 
+                        />
+                      </label>
+                      <span className="text-gray-500 text-[10px]">Recomendado: formato retrato com fundo transparente ou neutro</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="w-full h-24 md:h-28 rounded-lg overflow-hidden border border-white/10 bg-dark-950 flex items-center justify-center shadow-inner relative group">
+                      {formData.broker_image ? (
+                        <>
+                          <img src={formData.broker_image} className="w-full h-full object-cover" alt="Broker Preview" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] text-white font-medium">Pré-visualização</div>
+                        </>
+                      ) : (
+                        <span className="text-gray-500 text-xs">Sem foto</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contatos e Botões do Rodapé */}
+              <div className="border-b border-white/5 pb-6">
+                <h3 className="text-white font-serif text-lg mb-4 flex items-center gap-2">
+                  <Phone size={18} className="text-gold-400" />
+                  Contatos & Botões do Rodapé
+                </h3>
+                <p className="text-xs text-gray-400 mb-6 leading-relaxed">
+                  Personalize os canais de atendimento direto e de redes sociais que são exibidos globalmente nos rodapés e botões de contato do site.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* WhatsApp de Contato */}
+                  <div>
+                    <label className="block text-gray-400 text-xs uppercase tracking-widest mb-2 font-semibold">Número do WhatsApp (Contato Principal)</label>
+                    <input 
+                      name="whatsapp_number" 
+                      value={formData.whatsapp_number || ''} 
+                      onChange={handleChange} 
+                      className="w-full bg-dark-950 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-gold-500 focus:outline-none transition-colors text-sm" 
+                      placeholder="Ex: 5561991176958" 
+                    />
+                    <span className="text-[10px] text-gray-500 mt-1.5 block">Insira apenas números com DDD (Ex: 5561991176958).</span>
+                  </div>
+
+                  {/* Instagram Link */}
+                  <div>
+                    <label className="block text-gray-400 text-xs uppercase tracking-widest mb-2 font-semibold">Link do Instagram (Rede Social)</label>
+                    <input 
+                      name="instagram_link" 
+                      value={formData.instagram_link || ''} 
+                      onChange={handleChange} 
+                      className="w-full bg-dark-950 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-gold-500 focus:outline-none transition-colors text-sm" 
+                      placeholder="Ex: https://www.instagram.com/paulomartins_imoveis/" 
+                    />
+                    <span className="text-[10px] text-gray-500 mt-1.5 block">Link completo para abrir sua conta do Instagram.</span>
+                  </div>
+                </div>
+              </div>
 
               {/* Fast Integrations (ID-based) */}
               <div className="border-b border-white/5 pb-6">
