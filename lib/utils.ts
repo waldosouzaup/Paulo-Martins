@@ -28,3 +28,20 @@ export const formatPropertyTag = (tag: string): string => {
         .replace(/(^\w|\s\w)/g, (m) => m.toUpperCase());
   }
 };
+
+/**
+ * Converte um texto arbitrário em um slug amigável para URLs.
+ */
+export const slugify = (text: string): string => {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize('NFD') // divide caracteres com acentos em partes separadas
+    .replace(/[\u0300-\u036f]/g, '') // remove a parte do acento
+    .replace(/[^\w\s-]/g, '') // remove caracteres que não sejam letras, números ou hifen/espaço
+    .replace(/\s+/g, '-') // converte espaços em hifens
+    .replace(/-+/g, '-') // remove hifens repetidos
+    .trim();
+};
+

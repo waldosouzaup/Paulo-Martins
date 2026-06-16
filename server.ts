@@ -62,6 +62,184 @@ async function startServer() {
     });
   });
 
+  // API Route: Send alert emails using Resend when a new property is registered
+  app.post("/api/send-alert-emails", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: "Authorization token is missing" });
+    }
+
+    const { property } = req.body;
+    if (!property) {
+      return res.status(400).json({ error: "Missing property details" });
+    }
+
+    try {
+      // 1. Authenticate the token with standard Supabase Auth
+      const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token);
+      if (authError || !user) {
+        return res.status(401).json({ error: "Invalid credentials or unauthorized user" });
+      }
+
+      // 2. Create user-scoped Supabase client on-the-fly to respect RLS settings of alert_settings
+      const supabaseForUser = createClient(supabaseUrl, supabaseKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      });
+
+      // 3. Fetch alert config
+      const { data: settings, error: settingsError } = await supabaseForUser
+        .from('alert_settings')
+        .select('*')
+        .eq('id', 'global-alerts-config')
+        .maybeSingle();
+
+      if (settingsError) {
+        console.error("[Alerts Backend] Failed to load alert_settings:", settingsError);
+        return res.status(500).json({ error: `Failed to load settings: ${settingsError.message}` });
+      }
+
+      if (!settings || !settings.resend_api_key) {
+        console.log("[Alerts Backend] Resend API Key is not configured on alert_settings table.");
+        return res.json({ status: "skipped", message: "Resend API Key is not configured." });
+      }
+
+      // 4. Fetch all property alerts (registered customers filters)
+      const { data: alerts, error: alertsError } = await supabaseForUser
+        .from('property_alerts')
+        .select('*');
+
+      if (alertsError) {
+        console.error("[Alerts Backend] Failed to load property_alerts:", alertsError);
+        return res.status(500).json({ error: `Failed to load alerts list: ${alertsError.message}` });
+      }
+
+      if (!alerts || alerts.length === 0) {
+        console.log("[Alerts Backend] No active alerts registered by customers.");
+        return res.json({ status: "success", count: 0, message: "No registered alerts to notify." });
+      }
+
+      // 5. Filter matching alerts
+      const cleanPrice = (val: string): number => {
+        if (!val) return 0;
+        return Number(val.replace(/\D/g, '')) || 0;
+      };
+
+      const cleanNum = (val: string): number => {
+        if (!val) return 0;
+        return Number(val.replace(/\D/g, '')) || 0;
+      };
+
+      const matchedAlerts = alerts.filter(al => {
+        // Purpose Match
+        if (al.purpose && al.purpose !== 'Todos' && property.purpose) {
+          if (al.purpose.toLowerCase() !== property.purpose.toLowerCase()) return false;
+        }
+
+        // Type Match
+        if (al.type && al.type !== 'Todos' && property.type) {
+          if (al.type.toLowerCase() !== property.type.toLowerCase()) return false;
+        }
+
+        // Location/City Match
+        if (al.city && al.city !== 'Todos' && al.city.trim() !== '') {
+          const alertCity = al.city.toLowerCase().trim();
+          const propCity = (property.city || '').toLowerCase().trim();
+          const propLoc = (property.location || '').toLowerCase().trim();
+          if (!propCity.includes(alertCity) && !propLoc.includes(alertCity)) return false;
+        }
+
+        // Beds Match
+        if (al.beds && al.beds !== 'Todos') {
+          const minBeds = cleanNum(al.beds);
+          const propBeds = cleanNum(property.beds);
+          if (propBeds < minBeds) return false;
+        }
+
+        // Price Match
+        if (al.max_price && al.max_price !== 'Todos') {
+          const maxPrice = cleanPrice(al.max_price);
+          const propPrice = cleanPrice(property.price);
+          // If maxPrice is specified, property must be <= maxPrice
+          if (propPrice > 0 && maxPrice > 0 && propPrice > maxPrice) return false;
+        }
+
+        return true;
+      });
+
+      console.log(`[Alerts Backend] Match result: New property matches ${matchedAlerts.length}/${alerts.length} registered filters.`);
+
+      if (matchedAlerts.length === 0) {
+        return res.json({ status: "success", count: 0, notified: [] });
+      }
+
+      // 6. Send emails in parallel via standard Fetch to Resend API
+      const notifiedEmails: string[] = [];
+      const emailPromises = matchedAlerts.map(async (alert) => {
+        try {
+          const pDesc = property.brief_desc_home || property.description || '';
+          const pLink = `https://${req.headers.host || "pmartinsimob.com.br"}/#/${property.slug || property.id}`;
+
+          // Substring Replacement
+          let htmlContent = (settings.resend_email_template || '')
+            .split('{{title}}').join(property.title || '')
+            .split('{{location}}').join(property.location || '')
+            .split('{{price}}').join(property.price || '')
+            .split('{{beds}}').join(property.beds || '')
+            .split('{{area}}').join(property.area || '')
+            .split('{{parking}}').join(property.parking || '')
+            .split('{{purpose}}').join(property.purpose || '')
+            .split('{{type}}').join(property.type || '')
+            .split('{{brief_desc_home}}').join(pDesc)
+            .split('{{imageUrl}}').join(property.imageUrl || property.image_url || '')
+            .split('{{link}}').join(pLink);
+
+          let subjectContent = (settings.resend_email_subject || 'Nova oportunidade exclusiva encontrada: {{title}}')
+            .split('{{title}}').join(property.title || '')
+            .split('{{price}}').join(property.price || '');
+
+          const resendResponse = await globalThis.fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${settings.resend_api_key.trim()}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              from: settings.resend_email_sender || 'Paulo Martins Imóveis <radar@pmartinsimob.com.br>',
+              to: [alert.email],
+              subject: subjectContent,
+              html: htmlContent
+            })
+          });
+
+          if (resendResponse.ok) {
+            notifiedEmails.push(alert.email);
+          } else {
+            const errBody = await resendResponse.text();
+            console.error(`[Alerts Backend] Resend returned error status ${resendResponse.status} for ${alert.email}:`, errBody);
+          }
+        } catch (err) {
+          console.error(`[Alerts Backend] Exception sending email to ${alert.email}:`, err);
+        }
+      });
+
+      await Promise.all(emailPromises);
+
+      return res.json({
+        status: "success",
+        count: notifiedEmails.length,
+        notified: notifiedEmails
+      });
+    } catch (err: any) {
+      console.error("[Alerts Backend] Failed during alert dispatches:", err);
+      return res.status(500).json({ error: err.message || "Unknown error during dispatch" });
+    }
+  });
+
   // Serve robots.txt for AI crawlers and search indexers
   app.get("/robots.txt", (req, res) => {
     res.type("text/plain");
@@ -72,34 +250,49 @@ Sitemap: https://${domain}/sitemap.xml
 `);
   });
 
-  // Serve dynamic, rich sitemap.xml for full-coverage indexing
-  app.get("/sitemap.xml", async (req, res) => {
-    res.type("application/xml");
-    const domain = req.headers.host || "pmartinsimob.com.br";
-    const protocol = req.headers["x-forwarded-proto"] === "https" ? "https" : "http";
-    const baseUrl = `${protocol}://${domain}`;
+// Helper to slugify on the server side
+const slugifyServer = (text: string): string => {
+  if (!text) return "";
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim();
+};
 
-    let propertyUrls = "";
-    try {
-      const { data: properties } = await supabaseServer.from('properties').select('id');
-      if (properties && properties.length > 0) {
-        properties.forEach(prop => {
-          propertyUrls += `
+// Serve dynamic, rich sitemap.xml for full-coverage indexing
+app.get("/sitemap.xml", async (req, res) => {
+  res.type("application/xml");
+  const domain = req.headers.host || "pmartinsimob.com.br";
+  const protocol = req.headers["x-forwarded-proto"] === "https" ? "https" : "http";
+  const baseUrl = `${protocol}://${domain}`;
+
+  let propertyUrls = "";
+  try {
+    const { data: properties } = await supabaseServer.from('properties').select('id, title, slug');
+    if (properties && properties.length > 0) {
+      properties.forEach((prop: any) => {
+        const slug = prop.slug || (prop.title ? slugifyServer(prop.title) : prop.id);
+        propertyUrls += `
   <url>
-    <loc>${baseUrl}/#/property/${prop.id}</loc>
+    <loc>${baseUrl}/#/${slug}</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>${baseUrl}/property/${prop.id}</loc>
+    <loc>${baseUrl}/${slug}</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>`;
-        });
-      }
-    } catch (err) {
-      console.error("Error generating dynamic sitemap properties:", err);
+      });
     }
+  } catch (err) {
+    console.error("Error generating dynamic sitemap properties:", err);
+  }
 
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

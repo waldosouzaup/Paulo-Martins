@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import * as RouterDom from 'react-router-dom';
 import { useProperties } from '../context/PropertyContext';
 import { Property } from '../types';
-import { formatPropertyTag } from '../lib/utils';
+import { formatPropertyTag, slugify } from '../lib/utils';
 import { BedDouble, Car, Scaling, ArrowRight, MapPin, Award, CheckCircle2, Clock, Flame } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
 const { Link } = RouterDom;
 
@@ -49,13 +49,14 @@ export const FeaturedProperty: React.FC = () => {
 
   // Find a suitable property to display. 
   // Order of preference:
-  // 1. Property explicitly tagged or having "destaque", "exclusivo" or "mês" in the tag/title
-  // 2. The first property available in the list
-  // 3. Fallback luxury mock property if database is empty or loading
+  // 1. Property explicitly marked as is_featured by the admin
+  // 2. Property explicitly tagged or having "destaque", "exclusivo" or "mês" in the tag/title
+  // 3. The first property available in the list
+  // 4. Fallback luxury mock property if database is empty or loading
   let featured: Property | null = null;
 
   if (!loading && properties.length > 0) {
-    featured = properties.find(p => 
+    featured = properties.find(p => p.is_featured === true) || properties.find(p => 
       p.tag?.toLowerCase().includes('destaque') || 
       p.tag?.toLowerCase().includes('exclusiv') ||
       p.title?.toLowerCase().includes('mês') ||
@@ -70,6 +71,11 @@ export const FeaturedProperty: React.FC = () => {
     location: 'SQNW 311, Setor Noroeste, Brasília - DF',
     price: 'R$ 4.890.000',
     imageUrl: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80'
+    ],
     beds: '4',
     parking: '4',
     area: '340 m²',
@@ -80,6 +86,29 @@ export const FeaturedProperty: React.FC = () => {
 
   const propertyToShow = featured || fallbackProperty;
   const isFallback = !featured;
+
+  // Slideshow States and Handlers
+  const slideshowImages = propertyToShow.images && propertyToShow.images.length > 0
+    ? propertyToShow.images
+    : (propertyToShow.imageUrl ? [propertyToShow.imageUrl] : []);
+
+  const [currentImgIdx, setCurrentImgIdx] = useState(0);
+
+  // Reset active index when selected property changes
+  useEffect(() => {
+    setCurrentImgIdx(0);
+  }, [propertyToShow.id]);
+
+  // Slideshow auto-rotation interval
+  useEffect(() => {
+    if (slideshowImages.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentImgIdx((prev) => (prev + 1) % slideshowImages.length);
+    }, 5500); // changes smoothly every 5.5 seconds
+
+    return () => clearInterval(interval);
+  }, [slideshowImages.length]);
 
   // Render a clean structural placeholder if the database is in a loading state and we have no fallback
   return (
@@ -117,16 +146,41 @@ export const FeaturedProperty: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
             
             {/* Image Gallery Column */}
-            <div className="lg:col-span-7 relative h-[380px] md:h-[500px] lg:h-auto overflow-hidden group">
-              <img 
-                src={propertyToShow.imageUrl} 
-                alt={propertyToShow.title}
-                className="w-full h-full object-cover object-center transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-transparent to-[#030303]/30" />
+            <div className="lg:col-span-7 relative h-[380px] md:h-[500px] lg:min-h-[550px] overflow-hidden group">
+              <AnimatePresence mode="popLayout">
+                <motion.img 
+                  key={currentImgIdx}
+                  src={slideshowImages[currentImgIdx]} 
+                  alt={`${propertyToShow.title} - Imagem ${currentImgIdx + 1}`}
+                  initial={{ opacity: 0, scale: 1.02 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 1.2, ease: "easeInOut" }}
+                  className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
+                />
+              </AnimatePresence>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-transparent to-[#030303]/40 pointer-events-none z-10" />
               
+              {/* Slideshow dot indicators - right-aligned vertically */}
+              {slideshowImages.length > 1 && (
+                <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-2.5 z-20 bg-black/50 backdrop-blur-md p-2 rounded-full border border-white/5">
+                  {slideshowImages.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentImgIdx(idx)}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 cursor-pointer focus:outline-none ${
+                        currentImgIdx === idx 
+                          ? 'bg-gold-400 h-5' 
+                          : 'bg-white/30 hover:bg-white/70'
+                      }`}
+                      aria-label={`Ir para imagem ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+
               {/* Feature Tags / Overlays */}
-              <div className="absolute top-6 left-6 flex flex-col gap-2">
+              <div className="absolute top-6 left-6 flex flex-col gap-2 z-20">
                 <span id="featured-tag-badge" className="bg-gold-600 border border-gold-500/20 text-white text-[10px] font-extrabold px-3 py-1.5 rounded shadow-lg uppercase tracking-widest">
                   {formatPropertyTag(propertyToShow.tag)}
                 </span>
@@ -137,23 +191,6 @@ export const FeaturedProperty: React.FC = () => {
                 )}
               </div>
 
-              {/* Quick Spec Watermark on bottom-left of image */}
-              <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between text-white p-4 rounded-xl bg-black/40 backdrop-blur-md border border-white/5 md:hidden">
-                <div className="flex gap-4">
-                  <div className="flex items-center text-xs text-gray-300">
-                    <BedDouble size={14} className="mr-1.5 text-gold-400" />
-                    {propertyToShow.beds} Quartos
-                  </div>
-                  <div className="flex items-center text-xs text-gray-300">
-                    <Car size={14} className="mr-1.5 text-gold-400" />
-                    {propertyToShow.parking} Vagas
-                  </div>
-                  <div className="flex items-center text-xs text-gray-300">
-                    <Scaling size={14} className="mr-1.5 text-gold-400" />
-                    {propertyToShow.area}
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Spec Details & Text Column */}
@@ -223,24 +260,24 @@ export const FeaturedProperty: React.FC = () => {
                 </div>
 
                 {/* Main Specs (Grid) */}
-                <div className="grid grid-cols-3 gap-4 py-4 border-t border-b border-white/5">
+                <div className="grid grid-cols-3 gap-4 py-4 border-t border-b border-white/5 font-sans">
                   <div className="space-y-1">
                     <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Dormitórios</p>
-                    <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                    <p className="text-[13px] font-medium text-gray-200 flex items-center gap-1.5 tracking-wide">
                       <BedDouble size={14} className="text-gold-500 shrink-0" />
                       {propertyToShow.beds} {Number(propertyToShow.beds) === 1 ? 'Suíte' : 'Suítes'}
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Vagas</p>
-                    <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                    <p className="text-[13px] font-medium text-gray-200 flex items-center gap-1.5 tracking-wide">
                       <Car size={14} className="text-gold-500 shrink-0" />
                       {propertyToShow.parking} {Number(propertyToShow.parking) === 1 ? 'Vaga' : 'Vagas'}
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Área Útil</p>
-                    <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                    <p className="text-[13px] font-medium text-gray-200 flex items-center gap-1.5 tracking-wide">
                       <Scaling size={14} className="text-gold-500 shrink-0" />
                       {propertyToShow.area}
                     </p>
@@ -249,7 +286,7 @@ export const FeaturedProperty: React.FC = () => {
 
                 {/* Description snippet */}
                 <p id="featured-desc" className="text-gray-300 text-xs md:text-sm font-light leading-relaxed">
-                  {propertyToShow.description}
+                  {propertyToShow.brief_desc_home || propertyToShow.description}
                 </p>
 
                 {/* Key architectural highlights */}
@@ -273,7 +310,7 @@ export const FeaturedProperty: React.FC = () => {
               <div className="mt-8 pt-6 border-t border-white/5 flex justify-end">
                 <Link
                   id="featured-details-button"
-                  to={isFallback ? '/properties' : `/property/${propertyToShow.id}`}
+                  to={isFallback ? '/properties' : `/${propertyToShow.slug || slugify(propertyToShow.title)}`}
                   className="w-full sm:w-auto bg-gold-600 hover:bg-gold-500 text-white font-medium text-xs uppercase tracking-widest py-3.5 px-8 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_5px_15px_rgba(197,160,40,0.15)] hover:shadow-[0_8px_25px_rgba(197,160,40,0.25)] border border-transparent hover:-translate-y-0.5 text-center"
                 >
                   {isFallback ? 'Explorar Portfólio' : 'Ver Detalhes do Imóvel'}

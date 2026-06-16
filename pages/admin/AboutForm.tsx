@@ -99,9 +99,9 @@ export const AboutForm: React.FC = () => {
     setMessage('');
 
     try {
-      // Auto-create bucket 'properties' just in case
+      // Auto-create bucket 'fotos' just in case
       try {
-        await supabase.storage.createBucket('properties', { public: true });
+        await supabase.storage.createBucket('fotos', { public: true });
       } catch (err) {
         console.log('Bucket already exists or user has no create rights:', err);
       }
@@ -112,17 +112,17 @@ export const AboutForm: React.FC = () => {
       const fileName = `about_${rawFileName}_${uniqueId}.${fileExt}`;
 
       const { data, error: uploadError } = await supabase.storage
-        .from('properties')
+        .from('fotos')
         .upload(fileName, file, { cacheControl: '3600', upsert: true });
 
       if (uploadError) {
         throw new Error(
-          `Falha no upload: ${uploadError.message}. Certifique-se de que o bucket 'properties' existe e é público.`
+          `Falha no upload: ${uploadError.message}. Certifique-se de que o bucket 'fotos' existe, é público e possui as políticas RLS configuradas no Supabase.`
         );
       }
 
       const { data: { publicUrl } } = supabase.storage
-        .from('properties')
+        .from('fotos')
         .getPublicUrl(fileName);
 
       setFormData(prev => ({ ...prev, image_url: publicUrl }));

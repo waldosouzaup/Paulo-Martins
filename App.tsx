@@ -13,6 +13,7 @@ import { Contact } from './pages/Contact';
 import { PropertyDetails } from './pages/PropertyDetails';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { AltoSobradinho } from './pages/AltoSobradinho';
+import { Favorites } from './pages/Favorites';
 import { NotFound } from './pages/NotFound';
 import { Login } from './pages/admin/Login';
 import { RecoverPassword } from './pages/admin/RecoverPassword';
@@ -24,6 +25,7 @@ import { TrackingForm } from './pages/admin/TrackingForm';
 import { AltoSobradinhoForm } from './pages/admin/AltoSobradinhoForm';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PropertyProvider } from './context/PropertyContext';
+import { FavoritesProvider } from './context/FavoritesContext';
 import { supabase } from './lib/supabase';
 
 const { HashRouter, Routes, Route, useLocation, Navigate } = RouterDom;
@@ -195,7 +197,8 @@ function App() {
                 <Route path="/about" element={<About />} />
                 <Route path="/properties" element={<Properties />} />
                 <Route path="/contact" element={<Contact />} />
-                <Route path="/property/:id" element={<PropertyDetails />} />
+                <Route path="/favorites" element={<Favorites />} />
+                <Route path="/property/:idOrSlug" element={<PropertyDetails />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/alto-sobradinho" element={<AltoSobradinho />} />
 
@@ -252,6 +255,9 @@ function App() {
                     } 
                 />
                 
+                {/* Fallback segment for friendly slug routing (e.g. www.dominio.com/#/alto-sobradinho-exclusive) */}
+                <Route path="/:idOrSlug" element={<PropertyDetails />} />
+                
                 {/* Catch-all 404 Route */}
                 <Route path="*" element={<NotFound />} />
             </Routes>
@@ -268,7 +274,9 @@ function AppWrapper() {
         <Router>
             <AuthProvider>
                 <PropertyProvider>
-                    <App />
+                    <FavoritesProvider>
+                        <App />
+                    </FavoritesProvider>
                 </PropertyProvider>
             </AuthProvider>
         </Router>

@@ -1,27 +1,149 @@
 
 import React, { useState } from 'react';
 import * as RouterDom from 'react-router-dom';
-import { BedDouble, Car, Scaling, MapPin, X, ChevronLeft, ChevronRight, MessageCircle, Video, PlayCircle, Check, Share2, Linkedin, Mail, Link, CheckCheck, Printer } from 'lucide-react';
+import { BedDouble, Car, Scaling, MapPin, X, ChevronLeft, ChevronRight, MessageCircle, Video, PlayCircle, Check, Share2, Linkedin, Mail, Link, CheckCheck, Printer, School, GraduationCap, ShoppingBag, Utensils, HeartPulse, HelpCircle, ChevronDown, ChevronUp, Heart, Download, Loader2, Compass, Landmark, Store, Dumbbell, Coffee, Bus } from 'lucide-react';
 import { useProperties } from '../context/PropertyContext';
+import { useFavorites } from '../context/FavoritesContext';
 import { SEOHelper } from '../components/SEOHelper';
-import { formatPropertyTag } from '../lib/utils';
+import { formatPropertyTag, slugify } from '../lib/utils';
+import { NotFound } from './NotFound';
+import { jsPDF } from 'jspdf';
 
 const { useParams } = RouterDom;
 
+const imageToBase64 = (url: string): Promise<string | null> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    const timeout = setTimeout(() => {
+      resolve(null);
+    }, 4500);
+
+    img.onload = () => {
+      clearTimeout(timeout);
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+          return;
+        }
+      } catch (e) {
+        console.error('Error drawing image to canvas:', e);
+      }
+      resolve(null);
+    };
+    img.onerror = () => {
+      clearTimeout(timeout);
+      resolve(null);
+    };
+    img.src = url;
+  });
+};
+
 export const PropertyDetails: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id, idOrSlug } = useParams<{ id?: string; idOrSlug?: string }>();
   const { properties, trackingSettings } = useProperties();
+  const { isFavorite, addFavorite, removeFavorite } = useFavorites();
   
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [activeFloorPlanIndex, setActiveFloorPlanIndex] = useState(0);
+  const [floorPlanLightboxOpen, setFloorPlanLightboxOpen] = useState(false);
+  const [activeVirtualTourIndex, setActiveVirtualTourIndex] = useState(0);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
-  const property = properties.find(p => p.id === id);
+  const toggleFaq = (index: number) => {
+    setOpenFaqIndex(prev => prev === index ? null : index);
+  };
 
-  if (!property) return null;
+  const identifier = id || idOrSlug;
+
+  const property = properties.find(p => 
+    String(p.id) === String(identifier) || 
+    p.slug === identifier || 
+    (p.title && slugify(p.title) === identifier)
+  );
+
+  if (!property) return <NotFound />;
+
+  // Default FAQs for luxury real estate
+  const defaultFaqs = [
+    {
+      question: "Qual o processo para realizar uma visita ao imóvel?",
+      answer: "As visitas são realizadas com exclusividade sob agendamento prévio. Você será acompanhado pelo corretor Paulo Martins, que apresentará de forma guiada todos os detalhes técnicos, estruturais e de acabamento da propriedade."
+    },
+    {
+      question: "É possível realizar financiamento bancário ou consórcio?",
+      answer: "Sim, nossos imóveis de alto padrão possuem toda a documentação rigorosamente em dia, permitindo financiamento direto com qualquer grande instituição financeira ou o uso de cartas contempladas de consórcio."
+    },
+    {
+      question: "A assessoria jurídica para a escritura está inclusa?",
+      answer: "Sim, oferecemos suporte jurídica completo e assessoria cartorária integral durante todo o fluxo da transação de compra, desde a elaboração do compromisso até a lavratura da escritura definitiva."
+    }
+  ];
+
+  const displayFaqs = property.faqs && property.faqs.length > 0 ? property.faqs : defaultFaqs;
+
+  const parseNearbyItems = (text?: string): string[] => {
+    if (!text) return [];
+    
+    let rawItems: string[] = [];
+    if (text.includes('\n')) {
+      rawItems = text.split('\n');
+    } else if (text.includes(';')) {
+      rawItems = text.split(';');
+    } else {
+      rawItems = text.split(',');
+    }
+    
+    return rawItems
+      .map(item => item.trim())
+      .filter(item => item.length > 0);
+  };
+
+  const renderNearbyContent = (text: string) => {
+    const items = parseNearbyItems(text);
+    if (items.length === 0) return null;
+    if (items.length === 1) {
+      return <p className="text-white text-sm font-medium leading-relaxed">{items[0]}</p>;
+    }
+    return (
+      <ul className="space-y-2 mt-2 pl-1">
+        {items.map((item, idx) => (
+          <li key={idx} className="flex items-start gap-2.5 text-white text-sm font-medium leading-relaxed group">
+            <span className="w-1.5 h-1.5 rounded-full bg-gold-500 mt-2 shrink-0 transition-all duration-300 group-hover:scale-125" />
+            <span className="text-gray-200 group-hover:text-white transition-colors duration-200">{item}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
+  const hasNearbyInfo = !!(
+    property.nearby_school ||
+    property.nearby_university ||
+    property.nearby_shopping ||
+    property.nearby_restaurant ||
+    property.nearby_hospital ||
+    property.nearby_banks ||
+    property.nearby_supermarkets ||
+    property.nearby_gyms ||
+    property.nearby_bakeries ||
+    property.nearby_transport
+  );
 
   const allImages = property.images && property.images.length > 0 ? property.images : [property.imageUrl];
+
+  const displayFloorPlans = property.floorPlans && property.floorPlans.length > 0
+    ? property.floorPlans
+    : (property.floorPlanUrl ? [{ url: property.floorPlanUrl, description: 'Planta do Imóvel' }] : []);
 
   // Helper para converter URLs normais de vídeo em URLs de incorporação (embed)
   const getEmbedUrl = (url: string) => {
@@ -42,15 +164,46 @@ export const PropertyDetails: React.FC = () => {
     return url;
   };
 
-  // Configuração do WhatsApp
-  const whatsappNumber = trackingSettings?.whatsapp_number ? trackingSettings.whatsapp_number.replace(/\D/g, '') : "5561991176958";
-  const message = `Estou acessando o site e gostaria de mais informações sobre o imóvel: ${property.title}`;
-  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+  // Helper para obter URL correta do Tour Virtual 360°
+  const getVirtualTourEmbedUrl = (url: string) => {
+    if (!url) return '';
+    // Se já for um iframe, extrair o src
+    if (url.includes('<iframe')) {
+      const srcMatch = url.match(/src=["']([^"']+)["']/);
+      if (srcMatch && srcMatch[1]) {
+        return srcMatch[1];
+      }
+    }
+    
+    // Matterport format: m=xxxx
+    if (url.includes('matterport.com') && !url.includes('play.matterport.com') && !url.includes('/show/?m=')) {
+      const mMatch = url.match(/[?&]m=([a-zA-Z0-9_-]+)/);
+      if (mMatch && mMatch[1]) {
+        return `https://my.matterport.com/show/?m=${mMatch[1]}`;
+      }
+    }
+
+    // Kuula format: collection
+    if (url.includes('kuula.co') && !url.includes('/share/')) {
+      const collectionMatch = url.match(/(?:kuula\.co\/post\/|kuula\.co\/share\/collection\/|kuula\.co\/share\/|kuula\.co\/explore\/collection\/|kuula\.co\/)([a-zA-Z0-9_-]+)/);
+      if (collectionMatch && collectionMatch[1]) {
+        return `https://kuula.co/share/collection/${collectionMatch[1]}?fs=1&vr=1&sd=1&thumbs=1`;
+      }
+    }
+
+    return url;
+  };
 
   // Share Configurations
-  const shareUrl = `${window.location.origin}/#/property/${property.id}`;
+  const propertySlug = property.slug || (property.title ? slugify(property.title) : property.id);
+  const shareUrl = `${window.location.origin}/#/${propertySlug}`;
   const shareTitle = `Confira este excelente imóvel: ${property.title}`;
-  
+
+  // Configuração do WhatsApp
+  const whatsappNumber = trackingSettings?.whatsapp_number ? trackingSettings.whatsapp_number.replace(/\D/g, '') : "5561991176958";
+  const message = `Olá! Gostaria de receber mais informações sobre o imóvel *${property.title}*.\n\nVeja no link: ${shareUrl}`;
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+
   const shareWhatsapp = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareTitle + ' - ' + shareUrl)}`;
   const shareLinkedin = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
   const shareEmail = `mailto:?subject=${encodeURIComponent(property.title)}&body=${encodeURIComponent(shareTitle + '\n\nVeja os detalhes aqui:\n' + shareUrl)}`;
@@ -61,21 +214,240 @@ export const PropertyDetails: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleDownloadPdf = async () => {
+    if (!property) return;
+    if (property.datasheetUrl) {
+      window.open(property.datasheetUrl, '_blank');
+      return;
+    }
+    setIsGeneratingPdf(true);
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // --- PAGE 1: HEADER DESIGN ---
+      // Luxury dark header block
+      doc.setFillColor(12, 12, 12);
+      doc.rect(0, 0, 210, 42, 'F');
+
+      // Golden elegant accent bar inside the header
+      doc.setFillColor(197, 160, 40);
+      doc.rect(0, 42, 210, 2, 'F');
+
+      // Left Header: Branded luxury name
+      doc.setTextColor(197, 160, 40);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.text("PAULO MARTINS", 15, 18);
+
+      doc.setTextColor(160, 160, 160);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text("CONSULTORIA IMOBILIÁRIA EXCLUSIVA", 15, 24);
+
+      // Right Header: Contacts / Dynamic Date
+      doc.setTextColor(230, 230, 230);
+      doc.setFontSize(8.5);
+      doc.text("contato@pmartinsimob.com.br", 195, 17, { align: "right" });
+      const displayWhat = trackingSettings?.whatsapp_number || "(61) 99117-6958";
+      doc.text(`WhatsApp: ${displayWhat}`, 195, 22, { align: "right" });
+      doc.text(`Ficha técnica emitida em: ${new Date().toLocaleDateString('pt-BR')}`, 195, 27, { align: "right" });
+
+      // Start content below header
+      let currentY = 56;
+
+      // Property Title
+      doc.setTextColor(20, 20, 20);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      const wrappedTitle = doc.splitTextToSize(property.title || "", 180);
+      doc.text(wrappedTitle, 15, currentY);
+      currentY += (wrappedTitle.length * 6.5) + 3;
+
+      // Location Info
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(10.5);
+      doc.setTextColor(80, 80, 80);
+      doc.text(`Localização: ${property.location || 'Brasília, DF'}`, 15, currentY);
+      currentY += 5;
+
+      // Price Tag
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(197, 160, 40);
+      const purposeLabel = property.purpose === 'rent' ? 'Locação' : 'Venda';
+      doc.text(`${purposeLabel} • ${property.price || 'Preço Sob Consulta'}`, 15, currentY);
+      currentY += 8;
+
+      // Divider line
+      doc.setDrawColor(230, 230, 230);
+      doc.setLineWidth(0.4);
+      doc.line(15, currentY, 195, currentY);
+      currentY += 8;
+
+      // Render Primary Photo
+      const mainImageUrl = property.imageUrl || (allImages && allImages[0]);
+      if (mainImageUrl) {
+        try {
+          const base64Img = await imageToBase64(mainImageUrl);
+          if (base64Img) {
+            doc.addImage(base64Img, 'JPEG', 15, currentY, 180, 95);
+            currentY += 102;
+          }
+        } catch (imageErr) {
+          console.error("Could not add primary photo to PDF:", imageErr);
+        }
+      }
+
+      // Details Grid
+      doc.setFillColor(248, 248, 248);
+      doc.setDrawColor(230, 230, 230);
+      doc.roundedRect(15, currentY, 180, 16, 2, 2, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(60, 60, 60);
+      
+      const spaceColWidth = 60;
+      doc.text(`Dormitórios: ${property.beds || 'N/A'}`, 15 + 10, currentY + 10.5);
+      doc.text(`Vagas / Garagem: ${property.parking || 'N/A'}`, 15 + spaceColWidth + 5, currentY + 10.5);
+      doc.text(`Área Privativa: ${property.area || 'N/A'}`, 15 + (spaceColWidth * 2) + 5, currentY + 10.5);
+      currentY += 25;
+
+      // "Sobre o Imóvel" Header
+      doc.setTextColor(20, 20, 20);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.text("Descrição do Imóvel", 15, currentY);
+      currentY += 7;
+
+      // Description Text wrapping
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(60, 60, 60);
+      
+      const splitDescription = doc.splitTextToSize(property.description || "Nenhuma descrição detalhada disponível.", 180);
+      
+      const printableBottom = 275;
+      const spaceRemainingOnPage1 = printableBottom - currentY;
+      const linesThatFitOnPage1 = Math.floor(spaceRemainingOnPage1 / 5);
+
+      if (splitDescription.length > linesThatFitOnPage1 && linesThatFitOnPage1 > 1) {
+        const page1Lines = splitDescription.slice(0, linesThatFitOnPage1);
+        doc.text(page1Lines, 15, currentY);
+
+        doc.addPage();
+        
+        doc.setFillColor(12, 12, 12);
+        doc.rect(0, 0, 210, 12, 'F');
+        doc.setFillColor(197, 160, 40);
+        doc.rect(0, 12, 210, 1.5, 'F');
+
+        currentY = 24;
+
+        const page2Lines = splitDescription.slice(linesThatFitOnPage1);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.5);
+        doc.setTextColor(60, 60, 60);
+        doc.text(page2Lines, 15, currentY);
+        currentY += (page2Lines.length * 5) + 12;
+      } else {
+        if (spaceRemainingOnPage1 < 25) {
+          doc.addPage();
+          doc.setFillColor(12, 12, 12);
+          doc.rect(0, 0, 210, 12, 'F');
+          doc.setFillColor(197, 160, 40);
+          doc.rect(0, 12, 210, 1.5, 'F');
+          currentY = 24;
+        }
+
+        doc.text(splitDescription, 15, currentY);
+        currentY += (splitDescription.length * 5) + 12;
+      }
+
+      // "Diferenciais"
+      if (property.features && property.features.length > 0) {
+        if (printableBottom - currentY < 35) {
+          doc.addPage();
+          doc.setFillColor(12, 12, 12);
+          doc.rect(0, 0, 210, 12, 'F');
+          doc.setFillColor(197, 160, 40);
+          doc.rect(0, 12, 210, 1.5, 'F');
+          currentY = 24;
+        }
+
+        doc.setTextColor(20, 20, 20);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.text("Diferenciais do Imóvel", 15, currentY);
+        currentY += 8;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.5);
+        doc.setTextColor(70, 70, 70);
+
+        const half = Math.ceil(property.features.length / 2);
+        for (let i = 0; i < property.features.length; i++) {
+          const isLeftColumn = i < half;
+          const colX = isLeftColumn ? 22 : 112;
+          const indexInCol = isLeftColumn ? i : (i - half);
+          const itemY = currentY + (indexInCol * 6.5);
+
+          doc.setFillColor(197, 160, 40);
+          doc.circle(colX - 4, itemY - 1.2, 1.2, 'F');
+
+          const wrappedFeat = doc.splitTextToSize(property.features[i], 80);
+          doc.text(wrappedFeat, colX, itemY);
+        }
+
+        currentY += (half * 6.5) + 12;
+      }
+
+      // Add a footer overlay on all created pages
+      const totalPages = doc.getNumberOfPages();
+      for (let pIdx = 1; pIdx <= totalPages; pIdx++) {
+        doc.setPage(pIdx);
+
+        doc.setDrawColor(240, 240, 240);
+        doc.setLineWidth(0.4);
+        doc.line(15, 285, 195, 285);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(140, 140, 140);
+        doc.text("Paulo Martins Imóveis Autônomos • Brasília, DF | Telefone: (61) 99117-6958", 15, 290);
+        
+        doc.text(`Página ${pIdx} de ${totalPages}`, 195, 290, { align: "right" });
+      }
+
+      const pTitle = property.title ? property.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : "imovel";
+      const proposedFilename = `Ficha_Imovel_${pTitle}.pdf`;
+      doc.save(proposedFilename);
+    } catch (pdfErr) {
+      console.error("Failed to compile or issue PDF:", pdfErr);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   return (
     <div className="bg-dark-950 min-h-screen pb-20 print:bg-white text-white print:text-black">
       {/* Container visual da Web (Oculto na Impressão) */}
       <div className="print:hidden">
         <SEOHelper 
-          title={property.title} 
-        description={property.description ? property.description.slice(0, 160) + '...' : `Confira os detalhes de ${property.title} com o corretor Paulo Martins.`} 
-        image={property.imageUrl}
-        urlPath={`/#/property/${property.id}`}
-      />
+          title={property.seoTitle || property.title} 
+          description={property.seoDescription || (property.description ? property.description.slice(0, 160) + '...' : `Confira os detalhes de ${property.title} com o corretor Paulo Martins.`)} 
+          image={property.seoImageUrl || property.imageUrl}
+          urlPath={`/#/${propertySlug}`}
+        />
       
       <div className="relative h-[60vh] md:h-[70vh] group/hero overflow-hidden bg-black">
         {/* Back to listing button aligned with content grid */}
         <div className="absolute top-24 left-0 right-0 px-6 z-20">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
             <RouterDom.Link 
               to="/properties"
               className="inline-flex items-center gap-2 bg-black/60 hover:bg-gold-500 text-white hover:text-black hover:border-transparent px-4 py-2 rounded-full border border-white/10 backdrop-blur-md transition-all duration-300 font-medium text-xs tracking-wider uppercase shadow-lg hover:scale-105 cursor-pointer"
@@ -84,6 +456,22 @@ export const PropertyDetails: React.FC = () => {
               <ChevronLeft size={14} />
               Voltar para listagem
             </RouterDom.Link>
+
+            <button 
+              onClick={() => {
+                const isFav = isFavorite(property.id);
+                if (isFav) {
+                  removeFavorite(property.id);
+                } else {
+                  addFavorite(property);
+                }
+              }}
+              className="inline-flex items-center gap-2 bg-black/60 hover:bg-white text-white hover:text-black hover:border-transparent px-4 py-2 rounded-full border border-white/10 backdrop-blur-md transition-all duration-300 font-medium text-xs tracking-wider uppercase shadow-lg hover:scale-105 cursor-pointer active:scale-95"
+              title={isFavorite(property.id) ? "Remover dos favoritos" : "Salvar nos favoritos"}
+            >
+              <Heart size={14} className={isFavorite(property.id) ? "fill-gold-500 text-gold-500" : "text-white"} />
+              <span className="hidden sm:inline">{isFavorite(property.id) ? "Favoritado" : "Salvar"}</span>
+            </button>
           </div>
         </div>
         {/* Main Hero Image */}
@@ -176,19 +564,19 @@ export const PropertyDetails: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12 border-y border-white/5 py-12">
                 <div className="bg-[#0c0c0c] border border-white/5 p-8 rounded-2xl flex flex-col items-center justify-center text-center group hover:border-gold-600/30 transition-all duration-300">
                     <BedDouble size={28} className="text-gold-400 mb-4" />
-                    <span className="text-white font-bold text-lg md:text-xl leading-tight">
+                    <span className="text-white font-medium text-sm md:text-base leading-tight tracking-wide">
                         {property.beds}
                     </span>
                 </div>
                 <div className="bg-[#0c0c0c] border border-white/5 p-8 rounded-2xl flex flex-col items-center justify-center text-center group hover:border-gold-600/30 transition-all duration-300">
                     <Car size={28} className="text-gold-400 mb-4" />
-                    <span className="text-white font-bold text-lg md:text-xl leading-tight">
+                    <span className="text-white font-medium text-sm md:text-base leading-tight tracking-wide">
                         {property.parking}
                     </span>
                 </div>
                 <div className="bg-[#0c0c0c] border border-white/5 p-8 rounded-2xl flex flex-col items-center justify-center text-center group hover:border-gold-600/30 transition-all duration-300">
                     <Scaling size={28} className="text-gold-400 mb-4" />
-                    <span className="text-white font-bold text-lg md:text-xl leading-tight">
+                    <span className="text-white font-medium text-sm md:text-base leading-tight tracking-wide">
                         {property.area}
                     </span>
                 </div>
@@ -198,6 +586,28 @@ export const PropertyDetails: React.FC = () => {
                 <h2 className="text-2xl text-white font-serif mb-4">Sobre o Imóvel</h2>
                 <p className="text-gray-400 leading-relaxed font-light whitespace-pre-wrap">{property.description}</p>
             </div>
+
+            {/* Nova Seção: Endereço */}
+            {property.address && (
+              <div className="mb-12">
+                  <h2 className="text-2xl text-white font-serif mb-6 flex items-center gap-3">
+                      <MapPin size={24} className="text-gold-400" />
+                      Endereço
+                  </h2>
+                  <div className="bg-white/[0.01] p-6 rounded-2xl border border-white/5 flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-gold-600/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <MapPin size={18} className="text-gold-400" />
+                      </div>
+                      <div>
+                          <p className="text-white text-base font-light leading-relaxed whitespace-pre-wrap">{property.address}</p>
+                          <span className="text-xs text-gray-500 leading-relaxed block mt-1 tracking-wider uppercase font-semibold">
+                              {property.location ? `${property.location}` : ''}
+                              {property.city ? ` • ${property.city}` : ''}
+                          </span>
+                      </div>
+                  </div>
+              </div>
+            )}
 
             {/* Nova Seção: Diferenciais / Características (Features) */}
             {property.features && property.features.length > 0 && (
@@ -212,6 +622,134 @@ export const PropertyDetails: React.FC = () => {
                               <span className="text-sm font-light tracking-wide">{feature}</span>
                           </div>
                       ))}
+                  </div>
+              </div>
+            )}
+
+            {/* Nova Seção: Proximidades */}
+            {hasNearbyInfo && (
+              <div className="mb-12">
+                  <h2 className="text-2xl text-white font-serif mb-6">Proximidades</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {property.nearby_school && (
+                          <div className="bg-[#0c0c0c] border border-white/5 p-6 rounded-xl hover:border-gold-600/30 transition-all duration-300">
+                              <div className="flex items-center gap-3 mb-2">
+                                  <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
+                                      <School size={16} className="text-gold-400" />
+                                  </div>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Escola</span>
+                              </div>
+                              {renderNearbyContent(property.nearby_school)}
+                          </div>
+                      )}
+                      
+                      {property.nearby_university && (
+                          <div className="bg-[#0c0c0c] border border-white/5 p-6 rounded-xl hover:border-gold-600/30 transition-all duration-300">
+                              <div className="flex items-center gap-3 mb-2">
+                                  <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
+                                      <GraduationCap size={16} className="text-gold-400" />
+                                  </div>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Faculdade</span>
+                              </div>
+                              {renderNearbyContent(property.nearby_university)}
+                          </div>
+                      )}
+                      
+                      {property.nearby_shopping && (
+                          <div className="bg-[#0c0c0c] border border-white/5 p-6 rounded-xl hover:border-gold-600/30 transition-all duration-300">
+                              <div className="flex items-center gap-3 mb-2">
+                                  <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
+                                      <ShoppingBag size={16} className="text-gold-400" />
+                                  </div>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Shopping</span>
+                              </div>
+                              {renderNearbyContent(property.nearby_shopping)}
+                          </div>
+                      )}
+                      
+                      {property.nearby_restaurant && (
+                          <div className="bg-[#0c0c0c] border border-white/5 p-6 rounded-xl hover:border-gold-600/30 transition-all duration-300">
+                              <div className="flex items-center gap-3 mb-2">
+                                  <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
+                                      <Utensils size={16} className="text-gold-400" />
+                                  </div>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Restaurantes</span>
+                              </div>
+                              {renderNearbyContent(property.nearby_restaurant)}
+                          </div>
+                      )}
+                      
+                      {property.nearby_hospital && (
+                          <div className="bg-[#0c0c0c] border border-white/5 p-6 rounded-xl hover:border-gold-600/30 transition-all duration-300">
+                              <div className="flex items-center gap-3 mb-2">
+                                  <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
+                                      <HeartPulse size={16} className="text-gold-400" />
+                                  </div>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Hospitais</span>
+                              </div>
+                              {renderNearbyContent(property.nearby_hospital)}
+                          </div>
+                      )}
+                      
+                      {property.nearby_banks && (
+                          <div className="bg-[#0c0c0c] border border-white/5 p-6 rounded-xl hover:border-gold-600/30 transition-all duration-300">
+                              <div className="flex items-center gap-3 mb-2">
+                                  <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
+                                      <Landmark size={16} className="text-gold-400" />
+                                  </div>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Bancos</span>
+                              </div>
+                              {renderNearbyContent(property.nearby_banks)}
+                          </div>
+                      )}
+
+                      {property.nearby_supermarkets && (
+                          <div className="bg-[#0c0c0c] border border-white/5 p-6 rounded-xl hover:border-gold-600/30 transition-all duration-300">
+                              <div className="flex items-center gap-3 mb-2">
+                                  <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
+                                      <Store size={16} className="text-gold-400" />
+                                  </div>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Supermercados</span>
+                              </div>
+                              {renderNearbyContent(property.nearby_supermarkets)}
+                          </div>
+                      )}
+
+                      {property.nearby_gyms && (
+                          <div className="bg-[#0c0c0c] border border-white/5 p-6 rounded-xl hover:border-gold-600/30 transition-all duration-300">
+                              <div className="flex items-center gap-3 mb-2">
+                                  <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
+                                      <Dumbbell size={16} className="text-gold-400" />
+                                  </div>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Academias</span>
+                              </div>
+                              {renderNearbyContent(property.nearby_gyms)}
+                          </div>
+                      )}
+
+                      {property.nearby_bakeries && (
+                          <div className="bg-[#0c0c0c] border border-white/5 p-6 rounded-xl hover:border-gold-600/30 transition-all duration-300">
+                              <div className="flex items-center gap-3 mb-2">
+                                  <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
+                                      <Coffee size={16} className="text-gold-400" />
+                                  </div>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Padarias</span>
+                              </div>
+                              {renderNearbyContent(property.nearby_bakeries)}
+                          </div>
+                      )}
+
+                      {property.nearby_transport && (
+                          <div className="bg-[#0c0c0c] border border-[#ffffff]/5 p-6 rounded-xl hover:border-gold-600/30 transition-all duration-300">
+                              <div className="flex items-center gap-3 mb-2">
+                                  <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
+                                      <Bus size={16} className="text-gold-400" />
+                                  </div>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Transporte</span>
+                              </div>
+                              {renderNearbyContent(property.nearby_transport)}
+                          </div>
+                      )}
                   </div>
               </div>
             )}
@@ -233,6 +771,131 @@ export const PropertyDetails: React.FC = () => {
                         frameBorder="0"
                       ></iframe>
                   </div>
+              </div>
+            )}
+
+            {/* Tour Virtual 360° */}
+            {((property.virtualTours && property.virtualTours.length > 0) || property.virtualTourUrl) && (
+              <div className="mb-12">
+                  <h2 className="text-2xl text-white font-serif mb-6 flex items-center gap-3">
+                    <Compass size={24} className="text-gold-400" />
+                    Tour Virtual 360°
+                  </h2>
+                  
+                  {/* Se houver múltiplos ambientes cadastrados */}
+                  {property.virtualTours && property.virtualTours.length > 1 ? (
+                    <div className="space-y-6">
+                      <div className="flex flex-wrap gap-2 border-b border-white/5 pb-3">
+                        {property.virtualTours.map((tour, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setActiveVirtualTourIndex(idx)}
+                            className={`px-4 py-2 rounded-lg text-xs md:text-sm font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
+                              activeVirtualTourIndex === idx
+                                ? 'bg-gold-600 text-white shadow-[0_4px_12px_rgba(197,160,40,0.2)]'
+                                : 'bg-[#0c0c0c] text-gray-400 hover:text-white border border-white/5 hover:border-white/10'
+                            }`}
+                          >
+                            {tour.title || `Ambiente ${idx+1}`}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {property.virtualTours[activeVirtualTourIndex] && (
+                        <div className="relative h-[450px] md:h-auto md:aspect-video w-full overflow-hidden rounded-2xl bg-dark-900 border border-white/5 shadow-2xl">
+                          <iframe 
+                            src={getVirtualTourEmbedUrl(property.virtualTours[activeVirtualTourIndex].url)}
+                            className="absolute inset-0 w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                            title={`${property.virtualTours[activeVirtualTourIndex].title || 'Ambiente'} - Tour Virtual 360`}
+                            frameBorder="0"
+                          ></iframe>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Fallback para tour único */
+                    <div className="relative h-[450px] md:h-auto md:aspect-video w-full overflow-hidden rounded-2xl bg-dark-900 border border-white/5 shadow-2xl">
+                      <iframe 
+                        src={getVirtualTourEmbedUrl(property.virtualTours && property.virtualTours.length === 1 ? property.virtualTours[0].url : property.virtualTourUrl!)}
+                        className="absolute inset-0 w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        title={`Tour Virtual 360 - ${property.title}`}
+                        frameBorder="0"
+                      ></iframe>
+                    </div>
+                  )}
+              </div>
+            )}
+
+
+            {/* Planta do Imóvel */}
+            {((property.floorPlans && property.floorPlans.length > 0) || property.floorPlanUrl) && (
+              <div className="mb-12" id="property-floor-plan-sec">
+                  <h2 className="text-2xl text-white font-serif mb-6 flex items-center gap-3">
+                    <Scaling size={24} className="text-gold-400" />
+                    Planta do Imóvel (Planta Baixa)
+                  </h2>
+                  
+                  {/* Se houver mais de 1 planta cadastrada, renderiza as abas */}
+                  {property.floorPlans && property.floorPlans.length > 1 ? (
+                    <div className="space-y-6">
+                      <div className="flex flex-wrap gap-2 border-b border-white/5 pb-3">
+                        {property.floorPlans.map((plan, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setActiveFloorPlanIndex(idx)}
+                            className={`px-4 py-2 rounded-lg text-xs md:text-sm font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
+                              activeFloorPlanIndex === idx
+                                ? 'bg-gold-600 text-white shadow-[0_4px_12px_rgba(197,160,40,0.2)]'
+                                : 'bg-[#0c0c0c] text-gray-400 hover:text-white border border-white/5 hover:border-white/10'
+                            }`}
+                          >
+                            {plan.description || `Planta #${idx + 1}`}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {property.floorPlans[activeFloorPlanIndex] && (
+                        <div className="bg-[#0c0c0c] border border-[#d4af37]/10 p-6 rounded-2xl flex flex-col items-center justify-center overflow-hidden hover:border-gold-600/20 transition-all duration-350">
+                          <img 
+                            src={property.floorPlans[activeFloorPlanIndex].url} 
+                            alt={property.floorPlans[activeFloorPlanIndex].description || `Planta ${activeFloorPlanIndex + 1}`} 
+                            className="max-h-[500px] w-auto object-contain rounded-xl hover:scale-[1.02] active:scale-[0.98] cursor-zoom-in transition-all duration-300" 
+                            id="property-floor-plan-img"
+                            title="Clique para ampliar a planta"
+                            onClick={() => {
+                              setActiveFloorPlanIndex(activeFloorPlanIndex);
+                              setFloorPlanLightboxOpen(true);
+                            }}
+                          />
+                          <p className="text-xs text-gray-500 mt-4 font-light text-center">
+                            {property.floorPlans[activeFloorPlanIndex].description || `Planta baixa do imóvel.`}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Fallback para visualização de planta única ou legado */
+                    <div className="bg-[#0c0c0c] border border-white/5 p-6 rounded-2xl flex flex-col items-center justify-center overflow-hidden hover:border-gold-600/20 transition-all duration-300">
+                      <img 
+                        src={(property.floorPlans && property.floorPlans[0]) ? property.floorPlans[0].url : (property.floorPlanUrl || '')} 
+                        alt={`Planta para ${property.title}`} 
+                        className="max-h-[500px] w-auto object-contain rounded-xl hover:scale-[1.02] active:scale-[0.98] cursor-zoom-in transition-all duration-300" 
+                        id="property-floor-plan-img"
+                        title="Clique para ampliar a planta"
+                        onClick={() => {
+                          setActiveFloorPlanIndex(0);
+                          setFloorPlanLightboxOpen(true);
+                        }}
+                      />
+                      <p className="text-xs text-gray-500 mt-4 font-light text-center">
+                        {(property.floorPlans && property.floorPlans[0]?.description) || 'Esboço em corte horizontal e planta técnica simplificada do imóvel.'}
+                      </p>
+                    </div>
+                  )}
               </div>
             )}
 
@@ -269,6 +932,52 @@ export const PropertyDetails: React.FC = () => {
                   </button>
                 )}
             </div>
+
+
+            {/* Seção Perguntas Frequentes (FAQs) */}
+            <div className="mb-12" id="property-faqs-section">
+                <h2 className="text-2xl text-white font-serif mb-6 flex items-center gap-3">
+                  <HelpCircle size={24} className="text-gold-400" />
+                  Perguntas Frequentes
+                </h2>
+                <div className="space-y-4">
+                  {displayFaqs.map((faq, idx) => {
+                    const isOpen = openFaqIndex === idx;
+                    return (
+                      <div 
+                        key={idx} 
+                        className={`border rounded-2xl transition-all duration-300 overflow-hidden ${
+                          isOpen 
+                            ? 'bg-[#121212]/30 border-gold-500/35 shadow-[0_5px_15px_rgba(197,160,40,0.05)]' 
+                            : 'bg-[#0c0c0c] border-white/5 hover:border-white/10 hover:bg-[#121212]/10'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleFaq(idx)}
+                          className="w-full text-left px-6 py-5 flex justify-between items-center gap-4 focus:outline-none"
+                        >
+                          <span className="text-sm md:text-base font-semibold text-white tracking-wide">{faq.question}</span>
+                          <span className="shrink-0 p-1 bg-white/5 rounded-full text-gold-400 transition-transform duration-300">
+                            {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </span>
+                        </button>
+                        <div 
+                          className={`transition-all duration-300 ease-in-out ${
+                            isOpen ? 'max-h-[300px] border-t border-white/5' : 'max-h-0'
+                          } overflow-hidden`}
+                        >
+                          <div className="px-6 py-5">
+                            <p className="text-gray-400 text-xs md:text-sm font-light leading-relaxed whitespace-pre-line">
+                              {faq.answer}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+            </div>
           </div>
 
           <aside className="lg:col-span-1">
@@ -278,6 +987,15 @@ export const PropertyDetails: React.FC = () => {
 
 
                 <h3 className="text-xl text-white font-serif mb-4">Tem Interesse?</h3>
+                <div className="relative w-28 h-28 mx-auto mb-5 rounded-full overflow-hidden border-2 border-gold-500/30 shadow-[0_0_20px_rgba(191,160,84,0.15)] bg-dark-900 group-hover:border-gold-500/60 transition-all duration-300">
+                  <img 
+                    src={trackingSettings?.broker_image || "https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png"} 
+                    alt="Paulo Martins" 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-[#0c0c0c] rounded-full animate-pulse" title="Disponível"></div>
+                </div>
                 <p className="text-gray-400 text-sm mb-8 leading-relaxed">
                   Fale diretamente comigo para tirar suas dúvidas ou agendar uma visita exclusiva a este imóvel.
                 </p>
@@ -286,21 +1004,31 @@ export const PropertyDetails: React.FC = () => {
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-3 w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-5 rounded-2xl transition-all duration-300 shadow-[0_10px_30px_rgba(37,211,102,0.15)] hover:shadow-[0_15px_40px_rgba(37,211,102,0.3)] hover:-translate-y-1"
+                  className="inline-flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[#25D366] to-[#1cbd50] hover:from-[#2bdc6e] hover:to-[#22c356] text-white font-black py-5 rounded-2xl transition-all duration-300 shadow-[0_0_30px_rgba(37,211,102,0.35)] hover:shadow-[0_0_45px_rgba(37,211,102,0.6)] hover:-translate-y-1 hover:scale-[1.02] ring-4 ring-[#25D366]/20"
                 >
-                  <MessageCircle size={22} />
-                  <span className="text-xs uppercase tracking-widest">Conversar Agora</span>
+                  <MessageCircle size={24} className="animate-pulse" />
+                  <span className="text-sm uppercase tracking-wider">Conversar Agora</span>
                 </a>
 
-                {/* Botão para Imprimir Ficha Técnica do Imóvel */}
+                {/* Botão para Salvar Ficha Técnica do Imóvel (PDF) */}
                 <button
-                  id="print-sheet-button"
-                  onClick={() => window.print()}
-                  className="mt-4 inline-flex items-center justify-center gap-3 w-full bg-transparent hover:bg-white/[0.04] text-gold-400 hover:text-gold-300 border border-gold-500/30 hover:border-gold-500/60 font-medium py-3.5 rounded-2xl transition-all duration-300 shadow-md cursor-pointer"
-                  title="Gerar PDF ou Imprimir Ficha"
+                  id="save-sheet-button"
+                  onClick={handleDownloadPdf}
+                  disabled={isGeneratingPdf}
+                  className="mt-4 inline-flex items-center justify-center gap-3 w-full bg-gold-600 hover:bg-gold-500 disabled:bg-gold-700/50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-2xl transition-all duration-300 shadow-lg shadow-gold-600/10 hover:shadow-gold-600/20 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer text-xs uppercase tracking-widest"
+                  title={property.datasheetUrl ? "Baixar Ficha Técnica Cadastrada" : "Exportar Ficha Técnica em PDF"}
                 >
-                  <Printer size={16} />
-                  <span className="text-xs uppercase tracking-widest">Imprimir Ficha</span>
+                  {isGeneratingPdf ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Gerando Ficha...
+                    </>
+                  ) : (
+                    <>
+                      <Download size={16} />
+                      {property.datasheetUrl ? 'Baixar Ficha Completa' : 'Salvar Ficha (PDF)'}
+                    </>
+                  )}
                 </button>
 
                 {/* Compartilhamento de Redes Sociais */}
@@ -409,6 +1137,74 @@ export const PropertyDetails: React.FC = () => {
               <div className="absolute bottom-8 left-0 right-0 text-center text-white/60 text-sm font-light tracking-widest">
                 {currentImageIndex + 1} / {allImages.length}
               </div>
+            </div>
+        </div>
+      )}
+
+      {floorPlanLightboxOpen && displayFloorPlans.length > 0 && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center select-none" 
+          onClick={() => setFloorPlanLightboxOpen(false)}
+        >
+            <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
+              
+              {/* Imagem Ampliada */}
+              <div className="max-h-[80vh] max-w-full flex items-center justify-center flex-1">
+                <img 
+                  src={displayFloorPlans[activeFloorPlanIndex]?.url} 
+                  className="max-h-[75vh] max-w-full object-contain pointer-events-auto rounded-lg shadow-2xl" 
+                  alt={displayFloorPlans[activeFloorPlanIndex]?.description || "Planta do Imóvel Ampliada"} 
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+
+              {/* Botões de Navegação Anterior / Próximo (só se houver mais de 1 planta) */}
+              {displayFloorPlans.length > 1 && (
+                <>
+                  <button 
+                    className="absolute right-4 md:right-8 text-white p-2 hover:bg-white/10 rounded-full transition-colors z-[110] cursor-pointer" 
+                    onClick={(e) => {
+                      e.stopPropagation(); 
+                      setActiveFloorPlanIndex((p) => (p + 1) % displayFloorPlans.length);
+                    }}
+                  >
+                    <ChevronRight size={48}/>
+                  </button>
+                  
+                  <button 
+                    className="absolute left-4 md:left-8 text-white p-2 hover:bg-white/10 rounded-full transition-colors z-[110] cursor-pointer" 
+                    onClick={(e) => {
+                      e.stopPropagation(); 
+                      setActiveFloorPlanIndex((p) => (p - 1 + displayFloorPlans.length) % displayFloorPlans.length);
+                    }}
+                  >
+                    <ChevronLeft size={48}/>
+                  </button>
+                </>
+              )}
+              
+              {/* Botão Fechar */}
+              <button 
+                className="absolute top-4 right-4 md:top-8 md:right-8 text-white p-2 hover:bg-white/10 rounded-full transition-colors z-[110] cursor-pointer" 
+                onClick={() => setFloorPlanLightboxOpen(false)}
+              >
+                <X size={32}/>
+              </button>
+
+              {/* Legenda/Footer da planta em destaque */}
+              <div className="absolute bottom-8 left-4 right-4 text-center space-y-2 pointer-events-none">
+                {displayFloorPlans[activeFloorPlanIndex]?.description && (
+                  <p className="text-gold-400 font-serif text-sm md:text-base tracking-wide drop-shadow-md">
+                    {displayFloorPlans[activeFloorPlanIndex].description}
+                  </p>
+                )}
+                {displayFloorPlans.length > 1 && (
+                  <div className="text-white/60 text-xs font-mono tracking-widest uppercase">
+                    Planta {activeFloorPlanIndex + 1} de {displayFloorPlans.length}
+                  </div>
+                )}
+              </div>
+
             </div>
         </div>
       )}

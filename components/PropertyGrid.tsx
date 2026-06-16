@@ -1,11 +1,12 @@
 
 import React from 'react';
-import { BedDouble, Car, Scaling } from 'lucide-react';
+import { BedDouble, Car, Scaling, Heart } from 'lucide-react';
 // Fix: Use namespace import to resolve "no exported member" errors from react-router-dom
 import * as RouterDom from 'react-router-dom';
 import { useProperties } from '../context/PropertyContext';
+import { useFavorites } from '../context/FavoritesContext';
 import { Property } from '../types';
-import { formatPropertyTag } from '../lib/utils';
+import { formatPropertyTag, slugify } from '../lib/utils';
 
 const { Link } = RouterDom;
 
@@ -17,6 +18,7 @@ interface PropertyGridProps {
 
 export const PropertyGrid: React.FC<PropertyGridProps> = ({ limit, showTitle = true, properties: customProperties }) => {
   const { properties: contextProperties } = useProperties(); 
+  const { isFavorite, addFavorite, removeFavorite } = useFavorites();
   
   let displayedProperties = customProperties || contextProperties;
   
@@ -40,8 +42,10 @@ export const PropertyGrid: React.FC<PropertyGridProps> = ({ limit, showTitle = t
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {displayedProperties.map((prop) => (
-              <Link to={`/property/${prop.id}`} key={prop.id} className="group relative bg-dark-900 border border-white/5 rounded-xl overflow-hidden hover:border-gold-600/50 transition-all duration-500 hover:shadow-[0_0_30px_rgba(176,141,32,0.1)] flex flex-col transform hover:-translate-y-1.5 hover:scale-[1.02]">
+            {displayedProperties.map((prop) => {
+              const urlSlug = prop.slug || (prop.title ? slugify(prop.title) : prop.id);
+              return (
+                <Link to={`/${urlSlug}`} key={prop.id} className="group relative bg-dark-900 border border-white/5 rounded-xl overflow-hidden hover:border-gold-600/50 transition-all duration-500 hover:shadow-[0_0_30px_rgba(176,141,32,0.1)] flex flex-col transform hover:-translate-y-1.5 hover:scale-[1.02]">
                 {/* Image Container */}
                 <div className="relative h-64 overflow-hidden">
                   <img 
@@ -51,6 +55,24 @@ export const PropertyGrid: React.FC<PropertyGridProps> = ({ limit, showTitle = t
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-dark-900 via-transparent to-transparent opacity-80"></div>
                   
+                  {/* Heart Button */}
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const isFav = isFavorite(prop.id);
+                      if (isFav) {
+                        removeFavorite(prop.id);
+                      } else {
+                        addFavorite(prop);
+                      }
+                    }}
+                    className="absolute top-4 left-4 z-10 p-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white hover:text-gold-400 hover:scale-110 active:scale-95 transition-all duration-300 pointer-events-auto"
+                    title={isFavorite(prop.id) ? "Remover dos favoritos" : "Salvar nos favoritos"}
+                  >
+                    <Heart size={16} className={`${isFavorite(prop.id) ? 'fill-gold-500 text-gold-500' : 'text-white'}`} />
+                  </button>
+
                   {/* Badge */}
                   <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md border border-gold-600/30 px-3 py-1 rounded text-[10px] tracking-widest uppercase text-gold-400 font-semibold">
                     {formatPropertyTag(prop.tag)}
@@ -89,7 +111,7 @@ export const PropertyGrid: React.FC<PropertyGridProps> = ({ limit, showTitle = t
                   </div>
                 </div>
               </Link>
-            ))}
+            ); })}
           </div>
         )}
       </div>

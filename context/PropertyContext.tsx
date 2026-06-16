@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Property } from '../types';
 import { supabase } from '../lib/supabase';
+import { slugify } from '../lib/utils';
 
 type ConnectionStatus = 'checking' | 'online' | 'offline';
 
@@ -78,24 +79,70 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
       if (error) throw error;
 
       if (data) {
-        const mappedProperties: Property[] = data.map((item: any) => ({
-          id: item.id,
-          title: item.title || '',
-          location: item.location || '',
-          price: item.price || '',
-          imageUrl: item.image_url || '',
-          images: item.images || [],
-          beds: item.beds || '',
-          parking: item.parking || '',
-          area: item.area || '',
-          tag: item.tag || 'NOVO',
-          description: item.description || '',
-          features: item.features || [],
-          purpose: item.purpose || 'Venda',
-          type: item.type || 'Casa',
-          city: item.city || 'Brasília',
-          videoUrl: item.video_url || ''
-        }));
+        const mappedProperties: Property[] = data.map((item: any) => {
+          let parsedTours: any[] = [];
+          let rawTourUrl = item.virtual_tour_url || '';
+          let simpleUrl = '';
+          
+          if (rawTourUrl.trim().startsWith('[')) {
+            try {
+              parsedTours = JSON.parse(rawTourUrl);
+              if (parsedTours.length > 0) {
+                simpleUrl = parsedTours[0].url || '';
+              }
+            } catch (e) {
+              console.error('Failed to parse virtual tours JSON:', e);
+              simpleUrl = rawTourUrl;
+            }
+          } else {
+            simpleUrl = rawTourUrl;
+            if (simpleUrl) {
+              parsedTours = [{ title: 'Principal', url: simpleUrl }];
+            }
+          }
+
+          return {
+            id: String(item.id),
+            title: item.title || '',
+            location: item.location || '',
+            price: item.price || '',
+            imageUrl: item.image_url || '',
+            images: item.images || [],
+            beds: item.beds || '',
+            parking: item.parking || '',
+            area: item.area || '',
+            tag: item.tag || 'NOVO',
+            description: item.description || '',
+            features: item.features || [],
+            purpose: item.purpose || 'Venda',
+            type: item.type || 'Casa',
+            city: item.city || 'Brasília',
+            videoUrl: item.video_url || '',
+            is_featured: !!item.is_featured,
+            slug: item.slug || (item.title ? slugify(item.title) : ''),
+            floorPlanUrl: item.floor_plan_url || '',
+            floorPlans: item.floor_plans || [],
+            brief_desc_home: item.brief_desc_home || '',
+            nearby_school: item.nearby_school || '',
+            nearby_university: item.nearby_university || '',
+            nearby_shopping: item.nearby_shopping || '',
+            nearby_restaurant: item.nearby_restaurant || '',
+            nearby_hospital: item.nearby_hospital || '',
+            nearby_banks: item.nearby_banks || '',
+            nearby_supermarkets: item.nearby_supermarkets || '',
+            nearby_gyms: item.nearby_gyms || '',
+            nearby_bakeries: item.nearby_bakeries || '',
+            nearby_transport: item.nearby_transport || '',
+            faqs: item.faqs || [],
+            virtualTourUrl: simpleUrl,
+            virtualTours: parsedTours,
+            seoTitle: item.seo_title || '',
+            seoDescription: item.seo_description || '',
+            seoImageUrl: item.seo_image_url || '',
+            address: item.address || '',
+            datasheetUrl: item.datasheet_url || ''
+          };
+        });
         setProperties(mappedProperties);
         setConnectionStatus('online');
       }
@@ -133,8 +180,37 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
     alert(`${title}:\n\n${message}`);
   };
 
+  const extractMissingColumn = (errorMessage: string): string | null => {
+    if (!errorMessage) return null;
+    const patterns = [
+      /Could not find the '([^']+)' column/i,
+      /column "([^"]+)" of relation/i,
+      /column "([^"]+)" does not exist/i,
+      /column '([^']+)' does not exist/i,
+      /column "([^"]+)"/i,
+      /column '([^']+)'/i
+    ];
+    for (const pattern of patterns) {
+      const match = errorMessage.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    return null;
+  };
+
+  const handlePropDbError = (title: string, error: any) => {
+    console.error(title, error);
+    if (error && (error.code === '42703' || String(error.message || '').includes('is_featured') || String(error.message || '').includes('column') || String(error.message || '').includes('brief_desc_home') || String(error.message || '').includes('slug') || String(error.message || '').includes('floor_plan_url') || String(error.message || '').includes('floor_plans') || String(error.message || '').includes('faqs') || String(error.message || '').includes('virtual_tour_url') || String(error.message || '').includes('seo_title') || String(error.message || '').includes('seo_description') || String(error.message || '').includes('seo_image_url') || String(error.message || '').includes('nearby_banks') || String(error.message || '').includes('nearby_supermarkets') || String(error.message || '').includes('nearby_gyms') || String(error.message || '').includes('nearby_bakeries') || String(error.message || '').includes('nearby_transport') || String(error.message || '').includes('address') || String(error.message || '').includes('datasheet_url'))) {
+      alert(`Erro: Algumas novas colunas estão faltando na sua tabela "properties".\n\nPor favor, execute o seguinte comando no SQL Editor do seu painel Supabase para atualizá-la:\n\nALTER TABLE properties ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS slug TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS address TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS datasheet_url TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS floor_plan_url TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS floor_plans JSONB DEFAULT '[]'::jsonb;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS faqs JSONB DEFAULT '[]'::jsonb;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS brief_desc_home TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_school TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_university TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_shopping TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_restaurant TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_hospital TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_banks TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_supermarkets TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_gyms TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_bakeries TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_transport TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS virtual_tour_url TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS seo_title TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS seo_description TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS seo_image_url TEXT;\n\nDepois salve o imóvel novamente!`);
+      return;
+    }
+    const message = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+    alert(`${title}:\n\n${message}`);
+  };
+
   const addProperty = async (property: Property): Promise<boolean> => {
-    const dbProperty = {
+    const dbProperty: Record<string, any> = {
       title: property.title,
       location: property.location,
       price: property.price,
@@ -149,14 +225,73 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
       purpose: property.purpose,
       type: property.type,
       city: property.city,
-      video_url: property.videoUrl
+      video_url: property.videoUrl,
+      is_featured: property.is_featured || false,
+      slug: property.slug || (property.title ? slugify(property.title) : ''),
+      floor_plan_url: property.floorPlanUrl || '',
+      floor_plans: property.floorPlans || [],
+      brief_desc_home: property.brief_desc_home || '',
+      nearby_school: property.nearby_school || '',
+      nearby_university: property.nearby_university || '',
+      nearby_shopping: property.nearby_shopping || '',
+      nearby_restaurant: property.nearby_restaurant || '',
+      nearby_hospital: property.nearby_hospital || '',
+      nearby_banks: property.nearby_banks || '',
+      nearby_supermarkets: property.nearby_supermarkets || '',
+      nearby_gyms: property.nearby_gyms || '',
+      nearby_bakeries: property.nearby_bakeries || '',
+      nearby_transport: property.nearby_transport || '',
+      faqs: property.faqs || [],
+      virtual_tour_url: property.virtualTours && property.virtualTours.length > 0
+        ? JSON.stringify(property.virtualTours)
+        : (property.virtualTourUrl || ''),
+      seo_title: property.seoTitle || '',
+      seo_description: property.seoDescription || '',
+      seo_image_url: property.seoImageUrl || '',
+      address: property.address || '',
+      datasheet_url: property.datasheetUrl || ''
     };
 
-    const { error } = await supabase.from('properties').insert([dbProperty]);
-    
-    if (error) {
-      handleError('Erro ao cadastrar imóvel', error);
-      return false;
+    if (property.is_featured) {
+      const { error: resetError } = await supabase.from('properties').update({ is_featured: false }).neq('id', property.id);
+      if (resetError) {
+        if (resetError.code === '42703' || String(resetError.message || '').includes('is_featured')) {
+          handlePropDbError('Erro ao cadastrar imóvel', resetError);
+          return false;
+        }
+      }
+    }
+
+    let payload = { ...dbProperty };
+    let success = false;
+    let attempts = 0;
+    const maxAttempts = 15;
+
+    while (!success && attempts < maxAttempts) {
+      const { error } = await supabase.from('properties').insert([payload]);
+      if (error) {
+        const errorMsg = error.message || '';
+        const isMissingColError = error.code === '42703' || 
+                                  error.code === 'PGRST204' || 
+                                  errorMsg.includes('column') || 
+                                  errorMsg.includes('does not exist') || 
+                                  errorMsg.includes('schema cache');
+        if (isMissingColError) {
+          const missingCol = extractMissingColumn(errorMsg) || 
+                             ['seo_description', 'seo_title', 'seo_image_url', 'virtual_tour_url', 'brief_desc_home', 'floor_plan_url', 'floor_plans', 'faqs', 'nearby_school', 'nearby_university', 'nearby_shopping', 'nearby_restaurant', 'nearby_hospital', 'nearby_banks', 'nearby_supermarkets', 'nearby_gyms', 'nearby_bakeries', 'nearby_transport', 'address', 'datasheet_url', 'is_featured', 'slug'].find(col => errorMsg.includes(col));
+          
+          if (missingCol && missingCol in payload) {
+            console.warn(`[Self-Healing Add] Removendo coluna inexistente '${missingCol}' do payload e tentando novamente.`);
+            delete payload[missingCol];
+            attempts++;
+            continue;
+          }
+        }
+        
+        handlePropDbError('Erro ao cadastrar imóvel', error);
+        return false;
+      }
+      success = true;
     }
     
     await fetchProperties();
@@ -164,7 +299,7 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const updateProperty = async (property: Property): Promise<boolean> => {
-    const dbProperty = {
+    const dbProperty: Record<string, any> = {
         title: property.title,
         location: property.location,
         price: property.price,
@@ -179,17 +314,126 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         purpose: property.purpose,
         type: property.type,
         city: property.city,
-        video_url: property.videoUrl
+        video_url: property.videoUrl,
+        is_featured: property.is_featured || false,
+        slug: property.slug || (property.title ? slugify(property.title) : ''),
+        floor_plan_url: property.floorPlanUrl || '',
+        floor_plans: property.floorPlans || [],
+        brief_desc_home: property.brief_desc_home || '',
+        nearby_school: property.nearby_school || '',
+        nearby_university: property.nearby_university || '',
+        nearby_shopping: property.nearby_shopping || '',
+        nearby_restaurant: property.nearby_restaurant || '',
+        nearby_hospital: property.nearby_hospital || '',
+        nearby_banks: property.nearby_banks || '',
+        nearby_supermarkets: property.nearby_supermarkets || '',
+        nearby_gyms: property.nearby_gyms || '',
+        nearby_bakeries: property.nearby_bakeries || '',
+        nearby_transport: property.nearby_transport || '',
+        faqs: property.faqs || [],
+        virtual_tour_url: property.virtualTours && property.virtualTours.length > 0
+          ? JSON.stringify(property.virtualTours)
+          : (property.virtualTourUrl || ''),
+        seo_title: property.seoTitle || '',
+        seo_description: property.seoDescription || '',
+        seo_image_url: property.seoImageUrl || '',
+        address: property.address || '',
+        datasheet_url: property.datasheetUrl || ''
       };
   
-      const { error } = await supabase
-        .from('properties')
-        .update(dbProperty)
-        .eq('id', property.id);
+      const numericId = !isNaN(Number(property.id)) ? Number(property.id) : null;
+      const targetId = numericId !== null ? numericId : property.id;
+
+      if (property.is_featured) {
+        const { error: resetError } = await supabase.from('properties').update({ is_featured: false }).neq('id', targetId);
+        if (resetError) {
+          if (resetError.code === '42703' || String(resetError.message || '').includes('is_featured')) {
+            handlePropDbError('Erro ao atualizar imóvel', resetError);
+            return false;
+          }
+        }
+      }
+
+      console.log(`[PropertyContext] Atualizando imóvel. ID original: ${property.id}, ID tratado: ${targetId}`);
       
-      if (error) {
-        handleError('Erro ao atualizar imóvel', error);
-        return false;
+      let payload = { ...dbProperty };
+      let success = false;
+      let attempts = 0;
+      const maxAttempts = 15;
+
+      while (!success && attempts < maxAttempts) {
+        let updateResult = await supabase
+          .from('properties')
+          .update(payload)
+          .eq('id', targetId)
+          .select();
+        
+        // Fallback: se o ID era convertido pra numérico mas não encontrou linhas ou deu erro, tenta com o ID original como string
+        if ((updateResult.error || !updateResult.data || updateResult.data.length === 0) && numericId !== null && !(updateResult.error && (updateResult.error.code === '42703' || updateResult.error.code === 'PGRST204'))) {
+          console.warn(`[PropertyContext] Atualização com ID numérico não alterou registros. Tentando como String: ${property.id}`);
+          updateResult = await supabase
+            .from('properties')
+            .update(payload)
+            .eq('id', property.id)
+            .select();
+        }
+        
+        if (updateResult.error) {
+          const errorMsg = updateResult.error.message || '';
+          const isMissingColError = updateResult.error.code === '42703' || 
+                                    updateResult.error.code === 'PGRST204' || 
+                                    errorMsg.includes('column') || 
+                                    errorMsg.includes('does not exist') || 
+                                    errorMsg.includes('schema cache');
+          if (isMissingColError) {
+            const missingCol = extractMissingColumn(errorMsg) || 
+                               ['seo_description', 'seo_title', 'seo_image_url', 'virtual_tour_url', 'brief_desc_home', 'floor_plan_url', 'floor_plans', 'faqs', 'nearby_school', 'nearby_university', 'nearby_shopping', 'nearby_restaurant', 'nearby_hospital', 'nearby_banks', 'nearby_supermarkets', 'nearby_gyms', 'nearby_bakeries', 'nearby_transport', 'address', 'datasheet_url', 'is_featured', 'slug'].find(col => errorMsg.includes(col));
+            
+            if (missingCol && missingCol in payload) {
+              console.warn(`[Self-Healing Update] Removendo coluna inexistente '${missingCol}' do payload de update e tentando novamente.`);
+              delete payload[missingCol];
+              attempts++;
+              continue;
+            }
+          }
+          
+          handlePropDbError('Erro ao atualizar imóvel', updateResult.error);
+          return false;
+        }
+        
+        if (!updateResult.data || updateResult.data.length === 0) {
+          console.warn(`[PropertyContext] Nenhum registro de imóvel foi afetado pela atualização do ID: ${targetId}`);
+          
+          const fallbackRawResult = await supabase
+            .from('properties')
+            .update(payload)
+            .eq('id', targetId);
+            
+          if (fallbackRawResult.error) {
+            const errorMsg = fallbackRawResult.error.message || '';
+            const isMissingColError = fallbackRawResult.error.code === '42703' || 
+                                      fallbackRawResult.error.code === 'PGRST204' || 
+                                      errorMsg.includes('column') || 
+                                      errorMsg.includes('does not exist') || 
+                                      errorMsg.includes('schema cache');
+            if (isMissingColError) {
+              const missingCol = extractMissingColumn(errorMsg) || 
+                                 ['seo_description', 'seo_title', 'seo_image_url', 'virtual_tour_url', 'brief_desc_home', 'floor_plan_url', 'floor_plans', 'faqs', 'nearby_school', 'nearby_university', 'nearby_shopping', 'nearby_restaurant', 'nearby_hospital', 'nearby_banks', 'nearby_supermarkets', 'nearby_gyms', 'nearby_bakeries', 'nearby_transport', 'address', 'datasheet_url', 'is_featured', 'slug'].find(col => errorMsg.includes(col));
+              
+              if (missingCol && missingCol in payload) {
+                console.warn(`[Self-Healing Update Fallback] Removendo coluna inexistente '${missingCol}' do payload e tentando novamente.`);
+                delete payload[missingCol];
+                attempts++;
+                continue;
+              }
+            }
+            
+            handlePropDbError('Erro de fallback ao atualizar imóvel', fallbackRawResult.error);
+            return false;
+          }
+        }
+        
+        success = true;
       }
       
       await fetchProperties();
@@ -197,7 +441,19 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const deleteProperty = async (id: string) => {
-    const { error } = await supabase.from('properties').delete().eq('id', id);
+    const numericId = !isNaN(Number(id)) ? Number(id) : null;
+    const targetId = numericId !== null ? numericId : id;
+
+    console.log(`[PropertyContext] Excluindo imóvel. ID original: ${id}, ID tratado: ${targetId}`);
+    
+    let { error } = await supabase.from('properties').delete().eq('id', targetId);
+    
+    if (error && numericId !== null) {
+        console.warn(`[PropertyContext] Erro ao excluir com ID numérico. Tentando como String ID: ${id}`);
+        const fallbackResult = await supabase.from('properties').delete().eq('id', id);
+        error = fallbackResult.error;
+    }
+
     if (error) {
         handleError('Erro ao excluir imóvel', error);
     } else {

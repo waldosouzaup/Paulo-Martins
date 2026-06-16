@@ -272,7 +272,7 @@ export const AltoSobradinhoForm: React.FC = () => {
 
     try {
       try {
-        await supabase.storage.createBucket('properties', { public: true });
+        await supabase.storage.createBucket('fotos', { public: true });
       } catch (err) {
         console.log('Bucket already exists:', err);
       }
@@ -283,7 +283,7 @@ export const AltoSobradinhoForm: React.FC = () => {
       const fileName = `lp_sobradinho_${rawFileName}_${uniqueId}.${fileExt}`;
 
       const { data, error: uploadError } = await supabase.storage
-        .from('properties')
+        .from('fotos')
         .upload(fileName, file, { cacheControl: '3600', upsert: true });
 
       if (uploadError) {
@@ -291,7 +291,7 @@ export const AltoSobradinhoForm: React.FC = () => {
       }
 
       const { data: { publicUrl } } = supabase.storage
-        .from('properties')
+        .from('fotos')
         .getPublicUrl(fileName);
 
       if (indexUrl) {

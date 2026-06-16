@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { PropertyGrid } from '../components/PropertyGrid';
+import { PropertyAlerts } from '../components/PropertyAlerts';
 import { useProperties } from '../context/PropertyContext';
+import { SearchX, HelpCircle } from 'lucide-react';
 // Fix: Use namespace import to resolve "no exported member" errors from react-router-dom
 import * as RouterDom from 'react-router-dom';
 
-const { useSearchParams } = RouterDom;
+const { useSearchParams, Link } = RouterDom;
 
 export const Properties: React.FC = () => {
   const { properties } = useProperties();
@@ -125,7 +127,37 @@ export const Properties: React.FC = () => {
             ))}
         </div>
 
-        <PropertyGrid showTitle={false} properties={filteredProperties} />
+        {filteredProperties.length === 0 ? (
+            <div className="bg-dark-900 border border-white/5 rounded-3xl p-8 sm:p-12 text-center max-w-2xl mx-auto mb-16">
+                <div className="inline-flex items-center justify-center p-4 bg-gold-400/10 rounded-full text-gold-400 mb-6 border border-gold-400/20">
+                    <SearchX size={32} />
+                </div>
+                <h3 className="text-xl sm:text-2xl font-serif text-white mb-3">Nenhum Imóvel Encontrado</h3>
+                <p className="text-gray-400 font-light text-xs sm:text-sm mb-6 leading-relaxed">
+                    Não encontramos propriedades correspondentes aos filtros selecionados neste momento. Redefina seus filtros ou use nosso Radar de Alertas abaixo para ser notificado assim que algo correspondente estiver disponível.
+                </p>
+                <div className="flex items-center justify-center gap-4">
+                    <button 
+                        onClick={() => { setActiveFilter('Todos'); }} 
+                        className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 text-xs font-semibold text-white transition-all cursor-pointer"
+                    >
+                        Limpar Filtros
+                    </button>
+                    <Link 
+                        to="/contact" 
+                        className="px-5 py-2.5 bg-gold-600 hover:bg-gold-500 rounded-xl text-xs font-semibold text-white transition-all shadow-lg shadow-gold-600/10"
+                    >
+                        Falar com Consultor
+                    </Link>
+                </div>
+            </div>
+        ) : (
+            <PropertyGrid showTitle={false} properties={filteredProperties} />
+        )}
+
+        <div className="mt-24 border-t border-white/5 pt-16">
+            <PropertyAlerts />
+        </div>
       </div>
     </div>
   );

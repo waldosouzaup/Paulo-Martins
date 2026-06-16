@@ -5,6 +5,7 @@ import { FeaturedProperty } from '../components/FeaturedProperty';
 import { PropertyGrid } from '../components/PropertyGrid';
 import { Features } from '../components/Features';
 import { SEOHelper } from '../components/SEOHelper';
+import { PropertyAlerts } from '../components/PropertyAlerts';
 import { useProperties } from '../context/PropertyContext';
 import { Award, ShieldCheck, Star } from 'lucide-react';
 
@@ -112,6 +113,18 @@ export const Home: React.FC = () => {
             </div>
 
           </div>
+        </div>
+      </section>
+
+      <section className="py-20 px-6 bg-dark-950">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-5xl font-serif text-white mb-4">Radar de Imóveis Exclusivos</h2>
+            <p className="text-gray-400 font-light max-w-xl mx-auto text-sm">
+              Não encontrou o que procura? Configure suas preferências em 10 segundos e seja alertado assim que uma oportunidade perfeita der entrada no catálogo de Paulo Martins.
+            </p>
+          </div>
+          <PropertyAlerts />
         </div>
       </section>
 
