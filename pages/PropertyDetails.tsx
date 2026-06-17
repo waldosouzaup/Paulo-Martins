@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as RouterDom from 'react-router-dom';
 import { BedDouble, Car, Scaling, MapPin, X, ChevronLeft, ChevronRight, MessageCircle, Video, PlayCircle, Check, Share2, Linkedin, Mail, Link, CheckCheck, Printer, School, GraduationCap, ShoppingBag, Utensils, HeartPulse, HelpCircle, ChevronDown, ChevronUp, Heart, Download, Loader2, Compass, Landmark, Store, Dumbbell, Coffee, Bus, ZoomIn, ZoomOut } from 'lucide-react';
 import { useProperties } from '../context/PropertyContext';
 import { useFavorites } from '../context/FavoritesContext';
+import { useLanguage } from '../context/LanguageContext';
 import { SEOHelper } from '../components/SEOHelper';
 import { formatPropertyTag, slugify } from '../lib/utils';
 import { NotFound } from './NotFound';
@@ -96,6 +97,132 @@ export const PropertyDetails: React.FC = () => {
   ];
 
   const displayFaqs = property.faqs && property.faqs.length > 0 ? property.faqs : defaultFaqs;
+
+  const { language, translateDynamic, translateList, t: getT } = useLanguage();
+
+  const [translatedTitle, setTranslatedTitle] = useState(property.title);
+  const [translatedDescription, setTranslatedDescription] = useState(property.description || '');
+  const [translatedLocation, setTranslatedLocation] = useState(property.location);
+  const [translatedFeatures, setTranslatedFeatures] = useState<string[]>(property.features || []);
+  const [translatedFaqs, setTranslatedFaqs] = useState<{question: string, answer: string}[]>([]);
+  
+  const [translatedNearbySchool, setTranslatedNearbySchool] = useState(property.nearby_school || '');
+  const [translatedNearbyUniversity, setTranslatedNearbyUniversity] = useState(property.nearby_university || '');
+  const [translatedNearbyShopping, setTranslatedNearbyShopping] = useState(property.nearby_shopping || '');
+  const [translatedNearbyRestaurant, setTranslatedNearbyRestaurant] = useState(property.nearby_restaurant || '');
+  const [translatedNearbyHospital, setTranslatedNearbyHospital] = useState(property.nearby_hospital || '');
+  const [translatedNearbyBanks, setTranslatedNearbyBanks] = useState(property.nearby_banks || '');
+  const [translatedNearbySupermarkets, setTranslatedNearbySupermarkets] = useState(property.nearby_supermarkets || '');
+  const [translatedNearbyGyms, setTranslatedNearbyGyms] = useState(property.nearby_gyms || '');
+  const [translatedNearbyBakeries, setTranslatedNearbyBakeries] = useState(property.nearby_bakeries || '');
+  const [translatedNearbyTransport, setTranslatedNearbyTransport] = useState(property.nearby_transport || '');
+
+  const nearbyValues = [
+    property.nearby_school || '',
+    property.nearby_university || '',
+    property.nearby_shopping || '',
+    property.nearby_restaurant || '',
+    property.nearby_hospital || '',
+    property.nearby_banks || '',
+    property.nearby_supermarkets || '',
+    property.nearby_gyms || '',
+    property.nearby_bakeries || '',
+    property.nearby_transport || ''
+  ];
+
+  useEffect(() => {
+    // Reset to defaults first
+    setTranslatedTitle(property.title);
+    setTranslatedDescription(property.description || '');
+    setTranslatedLocation(property.location);
+    setTranslatedFeatures(property.features || []);
+    setTranslatedFaqs(displayFaqs);
+    
+    setTranslatedNearbySchool(property.nearby_school || '');
+    setTranslatedNearbyUniversity(property.nearby_university || '');
+    setTranslatedNearbyShopping(property.nearby_shopping || '');
+    setTranslatedNearbyRestaurant(property.nearby_restaurant || '');
+    setTranslatedNearbyHospital(property.nearby_hospital || '');
+    setTranslatedNearbyBanks(property.nearby_banks || '');
+    setTranslatedNearbySupermarkets(property.nearby_supermarkets || '');
+    setTranslatedNearbyGyms(property.nearby_gyms || '');
+    setTranslatedNearbyBakeries(property.nearby_bakeries || '');
+    setTranslatedNearbyTransport(property.nearby_transport || '');
+
+    if (language === 'pt') return;
+
+    let isMounted = true;
+    const runAllTranslations = async () => {
+      try {
+        const [tit, desc, loc] = await Promise.all([
+          translateDynamic(property.title, `prop_${property.id}_title`),
+          property.description ? translateDynamic(property.description, `prop_${property.id}_description`) : Promise.resolve(''),
+          translateDynamic(property.location, `prop_${property.id}_location`)
+        ]);
+
+        if (!isMounted) return;
+        setTranslatedTitle(tit);
+        setTranslatedDescription(desc);
+        setTranslatedLocation(loc);
+
+        // Fetch features
+        if (property.features && property.features.length > 0) {
+          const transFeat = await translateList(property.features, `prop_${property.id}_features`);
+          if (isMounted) setTranslatedFeatures(transFeat);
+        }
+
+        // Fetch nearby elements
+        const activeNearbyIndices: number[] = [];
+        const activeNearbyTexts: string[] = [];
+        nearbyValues.forEach((val, idx) => {
+          if (val) {
+            activeNearbyIndices.push(idx);
+            activeNearbyTexts.push(val);
+          }
+        });
+
+        if (activeNearbyTexts.length > 0) {
+          const transNearbyTexts = await translateList(activeNearbyTexts, `prop_${property.id}_nearby`);
+          if (isMounted) {
+            activeNearbyIndices.forEach((origIdx, listIdx) => {
+              const transVal = transNearbyTexts[listIdx];
+              if (origIdx === 0) setTranslatedNearbySchool(transVal);
+              else if (origIdx === 1) setTranslatedNearbyUniversity(transVal);
+              else if (origIdx === 2) setTranslatedNearbyShopping(transVal);
+              else if (origIdx === 3) setTranslatedNearbyRestaurant(transVal);
+              else if (origIdx === 4) setTranslatedNearbyHospital(transVal);
+              else if (origIdx === 5) setTranslatedNearbyBanks(transVal);
+              else if (origIdx === 6) setTranslatedNearbySupermarkets(transVal);
+              else if (origIdx === 7) setTranslatedNearbyGyms(transVal);
+              else if (origIdx === 8) setTranslatedNearbyBakeries(transVal);
+              else if (origIdx === 9) setTranslatedNearbyTransport(transVal);
+            });
+          }
+        }
+
+        // Fetch FAQs
+        if (displayFaqs.length > 0) {
+          const questions = displayFaqs.map(f => f.question);
+          const answers = displayFaqs.map(f => f.answer);
+          const [transQuestions, transAnswers] = await Promise.all([
+            translateList(questions, `prop_${property.id}_faqs_q`),
+            translateList(answers, `prop_${property.id}_faqs_a`)
+          ]);
+          if (isMounted) {
+            setTranslatedFaqs(displayFaqs.map((orig, i) => ({
+              question: transQuestions[i] || orig.question,
+              answer: transAnswers[i] || orig.answer
+            })));
+          }
+        }
+      } catch (err) {
+        console.error("Dynamic real-time translation error:", err);
+      }
+    };
+
+    runAllTranslations();
+    return () => { isMounted = false; };
+  }, [language, property.id]);
 
   const parseNearbyItems = (text?: string): string[] => {
     if (!text) return [];
@@ -237,196 +364,292 @@ export const PropertyDetails: React.FC = () => {
       // --- PAGE 1: HEADER DESIGN ---
       // Luxury dark header block
       doc.setFillColor(12, 12, 12);
-      doc.rect(0, 0, 210, 42, 'F');
+      doc.rect(0, 0, 210, 36, 'F');
 
       // Golden elegant accent bar inside the header
       doc.setFillColor(197, 160, 40);
-      doc.rect(0, 42, 210, 2, 'F');
+      doc.rect(0, 36, 210, 1.5, 'F');
 
       // Left Header: Branded luxury name
       doc.setTextColor(197, 160, 40);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(22);
-      doc.text("PAULO MARTINS", 15, 18);
+      doc.setFontSize(20);
+      doc.text("PAULO MARTINS", 15, 16);
 
       doc.setTextColor(160, 160, 160);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.text("CONSULTORIA IMOBILIÁRIA EXCLUSIVA", 15, 24);
+      doc.setFontSize(8.5);
+      doc.text("CONSULTORIA IMOBILIÁRIA EXCLUSIVA", 15, 22);
 
       // Right Header: Contacts / Dynamic Date
       doc.setTextColor(230, 230, 230);
-      doc.setFontSize(8.5);
-      doc.text("contato@pmartinsimob.com.br", 195, 17, { align: "right" });
+      doc.setFontSize(8);
+      doc.text("contato@pmartinsimob.com.br", 195, 15, { align: "right" });
       const displayWhat = trackingSettings?.whatsapp_number || "(61) 99117-6958";
-      doc.text(`WhatsApp: ${displayWhat}`, 195, 22, { align: "right" });
-      doc.text(`Ficha técnica emitida em: ${new Date().toLocaleDateString('pt-BR')}`, 195, 27, { align: "right" });
+      doc.text(`WhatsApp: ${displayWhat}`, 195, 20, { align: "right" });
+      doc.text(`Ficha emitida em: ${new Date().toLocaleDateString('pt-BR')}`, 195, 25, { align: "right" });
 
       // Start content below header
-      let currentY = 56;
+      let currentY = 48;
 
       // Property Title
       doc.setTextColor(20, 20, 20);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(18);
+      doc.setFontSize(16);
       const wrappedTitle = doc.splitTextToSize(property.title || "", 180);
       doc.text(wrappedTitle, 15, currentY);
-      currentY += (wrappedTitle.length * 6.5) + 3;
+      currentY += (wrappedTitle.length * 6) + 2;
 
-      // Location Info
+      // Location & Address Info
       doc.setFont('helvetica', 'italic');
-      doc.setFontSize(10.5);
+      doc.setFontSize(9);
       doc.setTextColor(80, 80, 80);
       doc.text(`Localização: ${property.location || 'Brasília, DF'}`, 15, currentY);
-      currentY += 5;
+      currentY += 4.5;
+      
+      if (property.address) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(100, 100, 100);
+        const wrappedAddress = doc.splitTextToSize(`Endereço: ${property.address}`, 180);
+        doc.text(wrappedAddress, 15, currentY);
+        currentY += (wrappedAddress.length * 4.5) + 1.5;
+      }
 
-      // Price Tag
+      // Purpose Label (Operational info, NO VALUE/PRICE)
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
+      doc.setFontSize(10.5);
       doc.setTextColor(197, 160, 40);
-      const purposeLabel = property.purpose === 'rent' ? 'Locação' : 'Venda';
-      doc.text(`${purposeLabel} • ${property.price || 'Preço Sob Consulta'}`, 15, currentY);
-      currentY += 8;
+      const purposeLabel = property.purpose === 'rent' ? 'Disponível para Locação' : 'Disponível para Venda';
+      doc.text(`${purposeLabel}`, 15, currentY);
+      currentY += 5;
 
       // Divider line
       doc.setDrawColor(230, 230, 230);
-      doc.setLineWidth(0.4);
+      doc.setLineWidth(0.3);
       doc.line(15, currentY, 195, currentY);
-      currentY += 8;
+      currentY += 5;
 
-      // Render Primary Photo
+      // Render Primary Photo (Slightly shorter height of 70mm to fit on exactly one page)
       const mainImageUrl = property.imageUrl || (allImages && allImages[0]);
       if (mainImageUrl) {
         try {
           const base64Img = await imageToBase64(mainImageUrl);
           if (base64Img) {
-            doc.addImage(base64Img, 'JPEG', 15, currentY, 180, 95);
-            currentY += 102;
+            doc.addImage(base64Img, 'JPEG', 15, currentY, 180, 70);
+            currentY += 75;
           }
         } catch (imageErr) {
           console.error("Could not add primary photo to PDF:", imageErr);
         }
       }
 
-      // Details Grid
+      // Details Grid (Dormitórios, Vagas, Área)
       doc.setFillColor(248, 248, 248);
       doc.setDrawColor(230, 230, 230);
-      doc.roundedRect(15, currentY, 180, 16, 2, 2, 'FD');
+      doc.roundedRect(15, currentY, 180, 13, 2, 2, 'FD');
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9.5);
+      doc.setFontSize(9);
       doc.setTextColor(60, 60, 60);
       
       const spaceColWidth = 60;
-      doc.text(`Dormitórios: ${property.beds || 'N/A'}`, 15 + 10, currentY + 10.5);
-      doc.text(`Vagas / Garagem: ${property.parking || 'N/A'}`, 15 + spaceColWidth + 5, currentY + 10.5);
-      doc.text(`Área Privativa: ${property.area || 'N/A'}`, 15 + (spaceColWidth * 2) + 5, currentY + 10.5);
-      currentY += 25;
+      doc.text(`Dormitórios: ${property.beds || 'N/A'}`, 15 + 8, currentY + 8.5);
+      doc.text(`Vagas / Garagem: ${property.parking || 'N/A'}`, 15 + spaceColWidth + 3, currentY + 8.5);
+      doc.text(`Área Privativa: ${property.area || 'N/A'}`, 15 + (spaceColWidth * 2) + 3, currentY + 8.5);
+      currentY += 19;
 
-      // "Sobre o Imóvel" Header
+      // Two-Column Layout for Description & Features (Elegant, ultra-compact, 1 page limit)
+      const colLeftX = 15;
+      const colRightX = 118;
+      const colLeftWidth = 95;
+      const colRightWidth = 77;
+
       doc.setTextColor(20, 20, 20);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(13);
-      doc.text("Descrição do Imóvel", 15, currentY);
-      currentY += 7;
+      doc.setFontSize(11.5);
+      doc.text("Descrição do Imóvel", colLeftX, currentY);
 
-      // Description Text wrapping
+      doc.text("Diferenciais", colRightX, currentY);
+      currentY += 6;
+
+      // We reserve up to 55mm for details block to fit comfortably above the 285mm footer
+      // Left Column - Description Text
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9.5);
-      doc.setTextColor(60, 60, 60);
+      doc.setFontSize(8.5);
+      doc.setTextColor(70, 70, 70);
+
+      const cleanDesc = (property.description || "Nenhuma descrição detalhada disponível.").replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const splitDescription = doc.splitTextToSize(cleanDesc, colLeftWidth);
       
-      const splitDescription = doc.splitTextToSize(property.description || "Nenhuma descrição detalhada disponível.", 180);
+      const maxDescLines = 7;
+      const visibleDesc = splitDescription.slice(0, maxDescLines);
+      if (splitDescription.length > maxDescLines) {
+        visibleDesc[maxDescLines - 1] = visibleDesc[maxDescLines - 1] + "... (continua online)";
+      }
       
-      const printableBottom = 275;
-      const spaceRemainingOnPage1 = printableBottom - currentY;
-      const linesThatFitOnPage1 = Math.floor(spaceRemainingOnPage1 / 5);
-
-      if (splitDescription.length > linesThatFitOnPage1 && linesThatFitOnPage1 > 1) {
-        const page1Lines = splitDescription.slice(0, linesThatFitOnPage1);
-        doc.text(page1Lines, 15, currentY);
-
-        doc.addPage();
-        
-        doc.setFillColor(12, 12, 12);
-        doc.rect(0, 0, 210, 12, 'F');
-        doc.setFillColor(197, 160, 40);
-        doc.rect(0, 12, 210, 1.5, 'F');
-
-        currentY = 24;
-
-        const page2Lines = splitDescription.slice(linesThatFitOnPage1);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9.5);
-        doc.setTextColor(60, 60, 60);
-        doc.text(page2Lines, 15, currentY);
-        currentY += (page2Lines.length * 5) + 12;
-      } else {
-        if (spaceRemainingOnPage1 < 25) {
-          doc.addPage();
-          doc.setFillColor(12, 12, 12);
-          doc.rect(0, 0, 210, 12, 'F');
-          doc.setFillColor(197, 160, 40);
-          doc.rect(0, 12, 210, 1.5, 'F');
-          currentY = 24;
-        }
-
-        doc.text(splitDescription, 15, currentY);
-        currentY += (splitDescription.length * 5) + 12;
+      for (let i = 0; i < visibleDesc.length; i++) {
+        doc.text(visibleDesc[i], colLeftX, currentY + (i * 4.5));
       }
 
-      // "Diferenciais"
-      if (property.features && property.features.length > 0) {
-        if (printableBottom - currentY < 35) {
-          doc.addPage();
-          doc.setFillColor(12, 12, 12);
-          doc.rect(0, 0, 210, 12, 'F');
-          doc.setFillColor(197, 160, 40);
-          doc.rect(0, 12, 210, 1.5, 'F');
-          currentY = 24;
-        }
+      // Compact "Proximidades" section inside Left Column below the Description
+      const startProximitiesY = currentY + (visibleDesc.length * 4.5) + 5;
+      
+      const nearbyItems: string[] = [];
+      if (property.nearby_school) nearbyItems.push(`Escolas: ${property.nearby_school}`);
+      if (property.nearby_university) nearbyItems.push(`Faculdades: ${property.nearby_university}`);
+      if (property.nearby_shopping) nearbyItems.push(`Shopping: ${property.nearby_shopping}`);
+      if (property.nearby_supermarkets) nearbyItems.push(`Supermercados: ${property.nearby_supermarkets}`);
+      if (property.nearby_restaurant) nearbyItems.push(`Restaurantes: ${property.nearby_restaurant}`);
+      if (property.nearby_gyms) nearbyItems.push(`Academias: ${property.nearby_gyms}`);
+      if (property.nearby_transport) nearbyItems.push(`Transporte: ${property.nearby_transport}`);
+      if (property.nearby_hospital) nearbyItems.push(`Saúde/Hospitais: ${property.nearby_hospital}`);
+      if (property.nearby_bakeries) nearbyItems.push(`Padarias: ${property.nearby_bakeries}`);
+      if (property.nearby_banks) nearbyItems.push(`Bancos: ${property.nearby_banks}`);
 
+      if (nearbyItems.length > 0) {
         doc.setTextColor(20, 20, 20);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(13);
-        doc.text("Diferenciais do Imóvel", 15, currentY);
-        currentY += 8;
-
+        doc.setFontSize(11.5);
+        doc.text("Proximidades", colLeftX, startProximitiesY);
+        
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9.5);
-        doc.setTextColor(70, 70, 70);
-
-        const half = Math.ceil(property.features.length / 2);
-        for (let i = 0; i < property.features.length; i++) {
-          const isLeftColumn = i < half;
-          const colX = isLeftColumn ? 22 : 112;
-          const indexInCol = isLeftColumn ? i : (i - half);
-          const itemY = currentY + (indexInCol * 6.5);
-
+        doc.setFontSize(8);
+        doc.setTextColor(80, 80, 80);
+        
+        let currentNearbyY = startProximitiesY + 5.5;
+        const visibleNearby = nearbyItems.slice(0, 4);
+        for (let j = 0; j < visibleNearby.length; j++) {
+          const wrappedNear = doc.splitTextToSize(visibleNearby[j], colLeftWidth - 5);
+          
           doc.setFillColor(197, 160, 40);
-          doc.circle(colX - 4, itemY - 1.2, 1.2, 'F');
-
-          const wrappedFeat = doc.splitTextToSize(property.features[i], 80);
-          doc.text(wrappedFeat, colX, itemY);
+          doc.circle(colLeftX + 1.2, currentNearbyY - 1, 0.8, 'F');
+          
+          doc.text(wrappedNear, colLeftX + 4, currentNearbyY);
+          currentNearbyY += (wrappedNear.length * 4) + 1.5;
         }
-
-        currentY += (half * 6.5) + 12;
       }
 
-      // Add a footer overlay on all created pages
+      // Right Column - Features/Diferenciais List
+      if (property.features && property.features.length > 0) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(70, 70, 70);
+
+        let currentFeatY = currentY + 6;
+        const visibleFeatures = property.features.slice(0, 9);
+        for (let i = 0; i < visibleFeatures.length; i++) {
+          const wrappedFeat = doc.splitTextToSize(visibleFeatures[i], colRightWidth - 4);
+          
+          doc.setFillColor(197, 160, 40);
+          doc.circle(colRightX + 1.5, currentFeatY - 1, 0.9, 'F');
+          
+          doc.text(wrappedFeat, colRightX + 5, currentFeatY);
+          currentFeatY += (wrappedFeat.length * 4.2) + 1.5;
+        }
+      } else {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8.5);
+        doc.setTextColor(140, 140, 140);
+        doc.text("Nenhum diferencial cadastrado.", colRightX, currentY);
+      }
+
+      // --- MULTI-PAGE ADDITIONS: PHOTOS OF FLOOR PLANS / PLANTAS ---
+      if (displayFloorPlans && displayFloorPlans.length > 0) {
+        for (let idx = 0; idx < displayFloorPlans.length; idx++) {
+          const plan = displayFloorPlans[idx];
+          if (!plan.url) continue;
+
+          try {
+            const planBase64 = await imageToBase64(plan.url);
+            if (planBase64) {
+              doc.addPage();
+
+              // Header for Floor Plan page
+              doc.setFillColor(12, 12, 12);
+              doc.rect(0, 0, 210, 36, 'F');
+
+              // Golden elegant accent bar
+              doc.setFillColor(197, 160, 40);
+              doc.rect(0, 36, 210, 1.5, 'F');
+
+              // Left Header
+              doc.setTextColor(197, 160, 40);
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(20);
+              doc.text("PAULO MARTINS", 15, 16);
+
+              doc.setTextColor(160, 160, 160);
+              doc.setFont('helvetica', 'normal');
+              doc.setFontSize(8.5);
+              doc.text("CONSULTORIA IMOBILIÁRIA EXCLUSIVA", 15, 22);
+
+              // Right Header
+              doc.setTextColor(230, 230, 230);
+              doc.setFontSize(8);
+              doc.text("contato@pmartinsimob.com.br", 195, 15, { align: "right" });
+              const displayWhat = trackingSettings?.whatsapp_number || "(61) 99117-6958";
+              doc.text(`WhatsApp: ${displayWhat}`, 195, 20, { align: "right" });
+              doc.text(`Ficha emitida em: ${new Date().toLocaleDateString('pt-BR')}`, 195, 25, { align: "right" });
+
+              let currentPlanY = 48;
+
+              // Title For Page 2+
+              doc.setTextColor(20, 20, 20);
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(15);
+              const wrapPlanTitle = doc.splitTextToSize(`Planta Técnica - ${property.title || ""}`, 180);
+              doc.text(wrapPlanTitle, 15, currentPlanY);
+              currentPlanY += (wrapPlanTitle.length * 5.5) + 2;
+
+              doc.setFont('helvetica', 'italic');
+              doc.setFontSize(9.5);
+              doc.setTextColor(100, 100, 100);
+              doc.text(plan.description || "Planta do Imóvel", 15, currentPlanY);
+              currentPlanY += 5;
+
+              // Divider line
+              doc.setDrawColor(230, 230, 230);
+              doc.setLineWidth(0.3);
+              doc.line(15, currentPlanY, 195, currentPlanY);
+              currentPlanY += 6;
+
+              // Display the Floor Plan Image beautifully scaled and centered
+              doc.addImage(planBase64, 'JPEG', 15, currentPlanY, 180, 110);
+              currentPlanY += 120;
+
+              // Notes overlay bar
+              doc.setFillColor(248, 248, 248);
+              doc.setDrawColor(240, 240, 240);
+              doc.roundedRect(15, currentPlanY, 180, 12, 1.5, 1.5, 'FD');
+
+              doc.setFont('helvetica', 'normal');
+              doc.setFontSize(8);
+              doc.setTextColor(110, 110, 110);
+              const infoText = "Planta técnica simplificada. Medidas e divisões internas sujeitas a alterações sem aviso prévio.";
+              doc.text(infoText, 18, currentPlanY + 7);
+            }
+          } catch (err) {
+            console.error("Could not render floor plan in PDF page:", err);
+          }
+        }
+      }
+
+      // Add a footer overlay with precise dynamic pages counter (Página X de Y)
       const totalPages = doc.getNumberOfPages();
       for (let pIdx = 1; pIdx <= totalPages; pIdx++) {
         doc.setPage(pIdx);
 
         doc.setDrawColor(240, 240, 240);
         doc.setLineWidth(0.4);
-        doc.line(15, 285, 195, 285);
+        doc.line(15, 282, 195, 282);
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
         doc.setTextColor(140, 140, 140);
-        doc.text("Paulo Martins Imóveis Autônomos • Brasília, DF | Telefone: (61) 99117-6958", 15, 290);
+        doc.text("Paulo Martins Imóveis Autônomos • Brasília, DF | Telefone: (61) 99117-6958", 15, 287);
         
-        doc.text(`Página ${pIdx} de ${totalPages}`, 195, 290, { align: "right" });
+        doc.text(`Página ${pIdx} de ${totalPages}`, 195, 287, { align: "right" });
       }
 
       const pTitle = property.title ? property.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : "imovel";
@@ -444,8 +667,8 @@ export const PropertyDetails: React.FC = () => {
       {/* Container visual da Web (Oculto na Impressão) */}
       <div className="print:hidden">
         <SEOHelper 
-          title={property.seoTitle || property.title} 
-          description={property.seoDescription || (property.description ? property.description.slice(0, 160) + '...' : `Confira os detalhes de ${property.title} com o corretor Paulo Martins.`)} 
+          title={property.seoTitle || translatedTitle} 
+          description={property.seoDescription || (translatedDescription ? translatedDescription.slice(0, 160) + '...' : `Confira os detalhes de ${translatedTitle} com o corretor Paulo Martins.`)} 
           image={property.seoImageUrl || property.imageUrl}
           urlPath={`/#/${propertySlug}`}
         />
@@ -460,7 +683,7 @@ export const PropertyDetails: React.FC = () => {
               id="back-to-listing-btn"
             >
               <ChevronLeft size={14} />
-              Voltar para listagem
+              {language === 'en' ? 'Back to listings' : language === 'es' ? 'Volver a la lista' : 'Voltar para listagem'}
             </RouterDom.Link>
 
             <button 
@@ -473,17 +696,21 @@ export const PropertyDetails: React.FC = () => {
                 }
               }}
               className="inline-flex items-center gap-2 bg-black/60 hover:bg-white text-white hover:text-black hover:border-transparent px-4 py-2 rounded-full border border-white/10 backdrop-blur-md transition-all duration-300 font-medium text-xs tracking-wider uppercase shadow-lg hover:scale-105 cursor-pointer active:scale-95"
-              title={isFavorite(property.id) ? "Remover dos favoritos" : "Salvar nos favoritos"}
+              title={isFavorite(property.id) ? (language === 'en' ? 'Remove from favorites' : language === 'es' ? 'Quitar de favoritos' : "Remover dos favoritos") : (language === 'en' ? 'Save with favorites' : language === 'es' ? 'Guardar en favoritos' : "Salvar nos favoritos")}
             >
               <Heart size={14} className={isFavorite(property.id) ? "fill-gold-500 text-gold-500" : "text-white"} />
-              <span className="hidden sm:inline">{isFavorite(property.id) ? "Favoritado" : "Salvar"}</span>
+              <span className="hidden sm:inline">
+                {isFavorite(property.id) 
+                  ? (language === 'en' ? 'Favorited' : language === 'es' ? 'Favorito' : 'Favoritado') 
+                  : (language === 'en' ? 'Save' : language === 'es' ? 'Guardar' : 'Salvar')}
+              </span>
             </button>
           </div>
         </div>
         {/* Main Hero Image */}
         <img 
           src={allImages[heroImageIndex]} 
-          alt={property.title} 
+          alt={translatedTitle} 
           className="w-full h-full object-cover cursor-pointer transition-all duration-700 ease-out hover:scale-[1.02]" 
           onClick={() => {
             setCurrentImageIndex(heroImageIndex);
@@ -529,8 +756,8 @@ export const PropertyDetails: React.FC = () => {
                     <span className="bg-gold-600 text-white text-[10px] font-bold px-3 py-1 rounded mb-4 inline-block uppercase tracking-widest pointer-events-auto shadow-md">
                       {formatPropertyTag(property.tag)}
                     </span>
-                    <h1 className="text-3xl md:text-5xl font-serif text-white mb-2 drop-shadow-md">{property.title}</h1>
-                    <div className="flex items-center text-gray-300"><MapPin size={18} className="text-gold-400 mr-2 flex-shrink-0" />{property.location}</div>
+                    <h1 className="text-3xl md:text-5xl font-serif text-white mb-2 drop-shadow-md">{translatedTitle}</h1>
+                    <div className="flex items-center text-gray-300"><MapPin size={18} className="text-gold-400 mr-2 flex-shrink-0" />{translatedLocation}</div>
                 </div>
                 {allImages.length > 1 && (
                   <span className="bg-black/60 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-lg text-xs font-mono text-gold-400 font-medium tracking-wider align-middle self-start md:self-auto pointer-events-auto">
@@ -589,9 +816,11 @@ export const PropertyDetails: React.FC = () => {
             </div>
 
             <div className="mb-12">
-                <h2 className="text-2xl text-white font-serif mb-4">Sobre o Imóvel</h2>
+                <h2 className="text-2xl text-white font-serif mb-4">
+                  {language === 'en' ? 'About the Property' : language === 'es' ? 'Sobre el Inmueble' : 'Sobre o Imóvel'}
+                </h2>
                 <p className={`text-gray-400 leading-relaxed font-light whitespace-pre-wrap ${!isDescExpanded ? 'line-clamp-4' : ''}`}>
-                    {property.description}
+                    {translatedDescription || property.description}
                 </p>
                 {property.description && (property.description.length > 250 || property.description.split('\n').length > 4) && (
                     <button
@@ -600,11 +829,11 @@ export const PropertyDetails: React.FC = () => {
                     >
                         {isDescExpanded ? (
                             <>
-                                Mostrar menos <ChevronUp size={14} className="transition-transform group-hover:-translate-y-0.5" />
+                                {language === 'en' ? 'Show less' : language === 'es' ? 'Mostrar menos' : 'Mostrar menos'} <ChevronUp size={14} className="transition-transform group-hover:-translate-y-0.5" />
                             </>
                         ) : (
                             <>
-                                Mostrar mais <ChevronDown size={14} className="transition-transform group-hover:translate-y-0.5" />
+                                {language === 'en' ? 'Show more' : language === 'es' ? 'Mostrar más' : 'Mostrar mais'} <ChevronDown size={14} className="transition-transform group-hover:translate-y-0.5" />
                             </>
                         )}
                     </button>
@@ -616,7 +845,7 @@ export const PropertyDetails: React.FC = () => {
               <div className="mb-12">
                   <h2 className="text-2xl text-white font-serif mb-6 flex items-center gap-3">
                       <MapPin size={24} className="text-gold-400" />
-                      Endereço
+                      {language === 'en' ? 'Address' : language === 'es' ? 'Dirección' : 'Endereço'}
                   </h2>
                   <div className="bg-white/[0.01] p-6 rounded-2xl border border-white/5 flex items-start gap-4">
                       <div className="w-10 h-10 rounded-xl bg-gold-600/10 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -625,7 +854,7 @@ export const PropertyDetails: React.FC = () => {
                       <div>
                           <p className="text-white text-base font-light leading-relaxed whitespace-pre-wrap">{property.address}</p>
                           <span className="text-xs text-gray-500 leading-relaxed block mt-1 tracking-wider uppercase font-semibold">
-                              {property.location ? `${property.location}` : ''}
+                              {translatedLocation ? `${translatedLocation}` : ''}
                               {property.city ? ` • ${property.city}` : ''}
                           </span>
                       </div>
@@ -634,11 +863,13 @@ export const PropertyDetails: React.FC = () => {
             )}
 
             {/* Nova Seção: Diferenciais / Características (Features) */}
-            {property.features && property.features.length > 0 && (
+            {translatedFeatures && translatedFeatures.length > 0 && (
               <div className="mb-12">
-                  <h2 className="text-2xl text-white font-serif mb-6">Diferenciais</h2>
+                  <h2 className="text-2xl text-white font-serif mb-6">
+                    {language === 'en' ? 'Key Features' : language === 'es' ? 'Características' : 'Diferenciais'}
+                  </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 bg-white/5 p-8 rounded-2xl border border-white/5">
-                      {property.features.map((feature, idx) => (
+                      {translatedFeatures.map((feature, idx) => (
                           <div key={idx} className="flex items-center gap-3 text-gray-300">
                               <div className="flex-shrink-0 w-5 h-5 rounded-full bg-gold-600/20 flex items-center justify-center">
                                   <Check size={12} className="text-gold-400" />
@@ -653,7 +884,9 @@ export const PropertyDetails: React.FC = () => {
             {/* Nova Seção: Proximidades */}
             {hasNearbyInfo && (
               <div className="mb-12">
-                  <h2 className="text-2xl text-white font-serif mb-6">Proximidades</h2>
+                  <h2 className="text-2xl text-white font-serif mb-6">
+                    {language === 'en' ? 'Nearby' : language === 'es' ? 'Proximidades' : 'Proximidades'}
+                  </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {property.nearby_school && (
                           <div className="bg-[#0c0c0c] border border-white/5 p-6 rounded-xl hover:border-gold-600/30 transition-all duration-300">
@@ -661,9 +894,11 @@ export const PropertyDetails: React.FC = () => {
                                   <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
                                       <School size={16} className="text-gold-400" />
                                   </div>
-                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Escola</span>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                                    {language === 'en' ? 'School' : language === 'es' ? 'Escuela' : 'Escola'}
+                                  </span>
                               </div>
-                              {renderNearbyContent(property.nearby_school)}
+                              {renderNearbyContent(translatedNearbySchool)}
                           </div>
                       )}
                       
@@ -673,9 +908,11 @@ export const PropertyDetails: React.FC = () => {
                                   <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
                                       <GraduationCap size={16} className="text-gold-400" />
                                   </div>
-                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Faculdade</span>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                                    {language === 'en' ? 'University' : language === 'es' ? 'Universidad' : 'Faculdade'}
+                                  </span>
                               </div>
-                              {renderNearbyContent(property.nearby_university)}
+                              {renderNearbyContent(translatedNearbyUniversity)}
                           </div>
                       )}
                       
@@ -685,9 +922,11 @@ export const PropertyDetails: React.FC = () => {
                                   <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
                                       <ShoppingBag size={16} className="text-gold-400" />
                                   </div>
-                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Shopping</span>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                                    {language === 'en' ? 'Shopping' : language === 'es' ? 'Centro Comercial' : 'Shopping'}
+                                  </span>
                               </div>
-                              {renderNearbyContent(property.nearby_shopping)}
+                              {renderNearbyContent(translatedNearbyShopping)}
                           </div>
                       )}
                       
@@ -697,9 +936,11 @@ export const PropertyDetails: React.FC = () => {
                                   <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
                                       <Utensils size={16} className="text-gold-400" />
                                   </div>
-                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Restaurantes</span>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                                    {language === 'en' ? 'Restaurants' : language === 'es' ? 'Restaurantes' : 'Restaurantes'}
+                                  </span>
                               </div>
-                              {renderNearbyContent(property.nearby_restaurant)}
+                              {renderNearbyContent(translatedNearbyRestaurant)}
                           </div>
                       )}
                       
@@ -709,9 +950,11 @@ export const PropertyDetails: React.FC = () => {
                                   <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
                                       <HeartPulse size={16} className="text-gold-400" />
                                   </div>
-                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Hospitais</span>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                                    {language === 'en' ? 'Hospitals' : language === 'es' ? 'Hospitales' : 'Hospitais'}
+                                  </span>
                               </div>
-                              {renderNearbyContent(property.nearby_hospital)}
+                              {renderNearbyContent(translatedNearbyHospital)}
                           </div>
                       )}
                       
@@ -721,9 +964,11 @@ export const PropertyDetails: React.FC = () => {
                                   <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
                                       <Landmark size={16} className="text-gold-400" />
                                   </div>
-                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Bancos</span>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                                    {language === 'en' ? 'Banks' : language === 'es' ? 'Bancos' : 'Bancos'}
+                                  </span>
                               </div>
-                              {renderNearbyContent(property.nearby_banks)}
+                              {renderNearbyContent(translatedNearbyBanks)}
                           </div>
                       )}
 
@@ -733,9 +978,11 @@ export const PropertyDetails: React.FC = () => {
                                   <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
                                       <Store size={16} className="text-gold-400" />
                                   </div>
-                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Supermercados</span>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                                    {language === 'en' ? 'Supermarkets' : language === 'es' ? 'Supermercados' : 'Supermercados'}
+                                  </span>
                               </div>
-                              {renderNearbyContent(property.nearby_supermarkets)}
+                              {renderNearbyContent(translatedNearbySupermarkets)}
                           </div>
                       )}
 
@@ -745,9 +992,11 @@ export const PropertyDetails: React.FC = () => {
                                   <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
                                       <Dumbbell size={16} className="text-gold-400" />
                                   </div>
-                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Academias</span>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                                    {language === 'en' ? 'Gyms' : language === 'es' ? 'Gimnasios' : 'Academias'}
+                                  </span>
                               </div>
-                              {renderNearbyContent(property.nearby_gyms)}
+                              {renderNearbyContent(translatedNearbyGyms)}
                           </div>
                       )}
 
@@ -757,9 +1006,11 @@ export const PropertyDetails: React.FC = () => {
                                   <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
                                       <Coffee size={16} className="text-gold-400" />
                                   </div>
-                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Padarias</span>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                                    {language === 'en' ? 'Bakeries' : language === 'es' ? 'Panaderías' : 'Padarias'}
+                                  </span>
                               </div>
-                              {renderNearbyContent(property.nearby_bakeries)}
+                              {renderNearbyContent(translatedNearbyBakeries)}
                           </div>
                       )}
 
@@ -769,9 +1020,11 @@ export const PropertyDetails: React.FC = () => {
                                   <div className="w-8 h-8 rounded-lg bg-gold-600/10 flex items-center justify-center">
                                       <Bus size={16} className="text-gold-400" />
                                   </div>
-                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Transporte</span>
+                                  <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                                    {language === 'en' ? 'Transport' : language === 'es' ? 'Transporte' : 'Transporte'}
+                                  </span>
                               </div>
-                              {renderNearbyContent(property.nearby_transport)}
+                              {renderNearbyContent(translatedNearbyTransport)}
                           </div>
                       )}
                   </div>
@@ -783,7 +1036,7 @@ export const PropertyDetails: React.FC = () => {
               <div className="mb-12">
                   <h2 className="text-2xl text-white font-serif mb-6 flex items-center gap-3">
                     <Video size={24} className="text-gold-400" />
-                    Tour em Vídeo
+                    {language === 'en' ? 'Video Tour' : language === 'es' ? 'Video Tour' : 'Tour em Vídeo'}
                   </h2>
                   <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-dark-900 border border-white/5 shadow-2xl">
                       <iframe 
@@ -962,10 +1215,10 @@ export const PropertyDetails: React.FC = () => {
             <div className="mb-12" id="property-faqs-section">
                 <h2 className="text-2xl text-white font-serif mb-6 flex items-center gap-3">
                   <HelpCircle size={24} className="text-gold-400" />
-                  Perguntas Frequentes
+                  {language === 'en' ? 'Frequently Asked Questions' : language === 'es' ? 'Preguntas Frecuentes' : 'Perguntas Frecuentes'}
                 </h2>
                 <div className="space-y-4">
-                  {displayFaqs.map((faq, idx) => {
+                  {(translatedFaqs || displayFaqs).map((faq, idx) => {
                     const isOpen = openFaqIndex === idx;
                     return (
                       <div 
@@ -973,7 +1226,7 @@ export const PropertyDetails: React.FC = () => {
                         className={`border rounded-2xl transition-all duration-300 overflow-hidden ${
                           isOpen 
                             ? 'bg-[#121212]/30 border-gold-500/35 shadow-[0_5px_15px_rgba(197,160,40,0.05)]' 
-                            : 'bg-[#0c0c0c] border-white/5 hover:border-white/10 hover:bg-[#121212]/10'
+                             : 'bg-[#0c0c0c] border-white/5 hover:border-white/10 hover:bg-[#121212]/10'
                         }`}
                       >
                         <button
@@ -1010,7 +1263,9 @@ export const PropertyDetails: React.FC = () => {
                 
 
 
-                <h3 className="text-xl text-white font-serif mb-4">Tem Interesse?</h3>
+                <h3 className="text-xl text-white font-serif mb-4 leading-snug">
+                  {language === 'en' ? 'Let\'s talk about your next property' : language === 'es' ? 'Hablemos de su próximo inmuebles' : 'Vamos conversar sobre o seu próximo imóvel'}
+                </h3>
                 <div className="relative w-28 h-28 mx-auto mb-5 rounded-full overflow-hidden border-2 border-gold-500/30 shadow-[0_0_20px_rgba(191,160,84,0.15)] bg-dark-900 group-hover:border-gold-500/60 transition-all duration-300">
                   <img 
                     src={trackingSettings?.broker_image || "https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png"} 
@@ -1021,7 +1276,7 @@ export const PropertyDetails: React.FC = () => {
                   <div className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-[#0c0c0c] rounded-full animate-pulse" title="Disponível"></div>
                 </div>
                 <p className="text-gray-400 text-sm mb-8 leading-relaxed">
-                  Fale diretamente comigo para tirar suas dúvidas ou agendar uma visita exclusiva a este imóvel.
+                  {language === 'en' ? 'Talk to me to clarify your doubts or schedule an exclusive visit.' : language === 'es' ? 'Hable conmigo para aclarar sus dudas o agendar una visita exclusiva.' : 'Fale comigo para tirar suas dúvidas ou agendar uma visita exclusiva.'}
                 </p>
 
                 <a 
@@ -1031,7 +1286,9 @@ export const PropertyDetails: React.FC = () => {
                   className="inline-flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[#25D366] to-[#1cbd50] hover:from-[#2bdc6e] hover:to-[#22c356] text-white font-black py-5 rounded-2xl transition-all duration-300 shadow-[0_0_30px_rgba(37,211,102,0.35)] hover:shadow-[0_0_45px_rgba(37,211,102,0.6)] hover:-translate-y-1 hover:scale-[1.02] ring-4 ring-[#25D366]/20"
                 >
                   <MessageCircle size={24} className="animate-pulse" />
-                  <span className="text-sm uppercase tracking-wider">Conversar Agora</span>
+                  <span className="text-sm uppercase tracking-wider">
+                    {language === 'en' ? 'Chat Now' : language === 'es' ? 'Platicar Ahora' : 'Conversar Agora'}
+                  </span>
                 </a>
 
                 {/* Botão para Salvar Ficha Técnica do Imóvel (PDF) */}
@@ -1040,17 +1297,19 @@ export const PropertyDetails: React.FC = () => {
                   onClick={handleDownloadPdf}
                   disabled={isGeneratingPdf}
                   className="mt-4 inline-flex items-center justify-center gap-3 w-full bg-gold-600 hover:bg-gold-500 disabled:bg-gold-700/50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-2xl transition-all duration-300 shadow-lg shadow-gold-600/10 hover:shadow-gold-600/20 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer text-xs uppercase tracking-widest"
-                  title={property.datasheetUrl ? "Baixar Ficha Técnica Cadastrada" : "Exportar Ficha Técnica em PDF"}
+                  title={property.datasheetUrl ? (language === 'en' ? 'Download Fact Sheet' : language === 'es' ? 'Descargar Ficha' : "Baixar Ficha Técnica Cadastrada") : (language === 'en' ? 'Export Fact Sheet to PDF' : language === 'es' ? 'Exportar Ficha a PDF' : "Exportar Ficha Técnica em PDF")}
                 >
                   {isGeneratingPdf ? (
                     <>
                       <Loader2 size={16} className="animate-spin" />
-                      Gerando Ficha...
+                      {language === 'en' ? 'Generating Fact Sheet...' : language === 'es' ? 'Generando Ficha...' : 'Gerando Ficha...'}
                     </>
                   ) : (
                     <>
                       <Download size={16} />
-                      {property.datasheetUrl ? 'Baixar Ficha Completa' : 'Salvar Ficha (PDF)'}
+                      {property.datasheetUrl 
+                        ? (language === 'en' ? 'Download Full Sheet' : language === 'es' ? 'Descargar Ficha Completa' : 'Baixar Ficha Completa') 
+                        : (language === 'en' ? 'Save Sheet (PDF)' : language === 'es' ? 'Guardar Ficha (PDF)' : 'Salvar Ficha (PDF)')}
                     </>
                   )}
                 </button>
@@ -1059,7 +1318,7 @@ export const PropertyDetails: React.FC = () => {
                 <div className="mt-6 pt-6 border-t border-white/5 text-left">
                   <p className="text-gray-400 text-xs font-medium tracking-wide mb-3 flex items-center gap-2">
                     <Share2 size={14} className="text-gold-400" />
-                    Compartilhar Imóvel
+                    {language === 'en' ? 'Share Property' : language === 'es' ? 'Compartir Inmueble' : 'Compartilhar Imóvel'}
                   </p>
                   <div className="grid grid-cols-4 gap-2">
                     {/* WhatsApp */}

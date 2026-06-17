@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Loader2 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface AboutData {
   title: string;
@@ -33,6 +34,21 @@ const DEFAULT_ABOUT: AboutData = {
 export const About: React.FC = () => {
   const [data, setData] = useState<AboutData>(DEFAULT_ABOUT);
   const [loading, setLoading] = useState(true);
+  const { translateDynamic, language } = useLanguage();
+
+  const [translatedTitle, setTranslatedTitle] = useState(data.title);
+  const [translatedContent, setTranslatedContent] = useState(data.content);
+  const [translatedStat1Title, setTranslatedStat1Title] = useState(data.stat1_title);
+  const [translatedStat2Title, setTranslatedStat2Title] = useState(data.stat2_title);
+  const [translatedStat3Title, setTranslatedStat3Title] = useState(data.stat3_title);
+  const [translatedStat4Title, setTranslatedStat4Title] = useState(data.stat4_title);
+  const [translatedStat1Value, setTranslatedStat1Value] = useState(data.stat1_value);
+  const [translatedStat2Value, setTranslatedStat2Value] = useState(data.stat2_value);
+  const [translatedStat3Value, setTranslatedStat3Value] = useState(data.stat3_value);
+  const [translatedStat4Value, setTranslatedStat4Value] = useState(data.stat4_value);
+
+  // Translate static loader
+  const loaderText = language === 'en' ? 'Loading story...' : language === 'es' ? 'Cargando historia...' : 'Carregando história...';
 
   useEffect(() => {
     const fetchAboutData = async () => {
@@ -107,8 +123,61 @@ export const About: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    setTranslatedTitle(data.title);
+    setTranslatedContent(data.content);
+    setTranslatedStat1Title(data.stat1_title);
+    setTranslatedStat2Title(data.stat2_title);
+    setTranslatedStat3Title(data.stat3_title);
+    setTranslatedStat4Title(data.stat4_title);
+    setTranslatedStat1Value(data.stat1_value);
+    setTranslatedStat2Value(data.stat2_value);
+    setTranslatedStat3Value(data.stat3_value);
+    setTranslatedStat4Value(data.stat4_value);
+
+    if (language === 'pt') return;
+
+    let isMounted = true;
+    const translateAll = async () => {
+      try {
+        const [tTitle, tContent, ts1Title, ts2Title, ts3Title, ts4Title, ts1Val, ts2Val, ts3Val, ts4Val] = await Promise.all([
+          translateDynamic(data.title, `about_title_${language}`),
+          translateDynamic(data.content, `about_content_${language}`),
+          translateDynamic(data.stat1_title, `about_s1t_${language}`),
+          translateDynamic(data.stat2_title, `about_s2t_${language}`),
+          translateDynamic(data.stat3_title, `about_s3t_${language}`),
+          translateDynamic(data.stat4_title, `about_s4t_${language}`),
+          translateDynamic(data.stat1_value, `about_s1v_${language}`),
+          translateDynamic(data.stat2_value, `about_s2v_${language}`),
+          translateDynamic(data.stat3_value, `about_s3v_${language}`),
+          translateDynamic(data.stat4_value, `about_s4v_${language}`)
+        ]);
+
+        if (isMounted) {
+          setTranslatedTitle(tTitle);
+          setTranslatedContent(tContent);
+          setTranslatedStat1Title(ts1Title);
+          setTranslatedStat2Title(ts2Title);
+          setTranslatedStat3Title(ts3Title);
+          setTranslatedStat4Title(ts4Title);
+          setTranslatedStat1Value(ts1Val);
+          setTranslatedStat2Value(ts2Val);
+          setTranslatedStat3Value(ts3Val);
+          setTranslatedStat4Value(ts4Val);
+        }
+      } catch (err) {
+        console.error("About translation failed:", err);
+      }
+    };
+
+    translateAll();
+    return () => {
+      isMounted = false;
+    };
+  }, [data, language]);
+
   // Split content by two or more newlines to generate paragraphs
-  const paragraphs = data.content
+  const paragraphs = translatedContent
     .split(/\n\s*\n+/)
     .map(p => p.trim())
     .filter(p => p.length > 0);
@@ -119,13 +188,13 @@ export const About: React.FC = () => {
         {loading ? (
           <div className="py-32 text-center flex flex-col items-center justify-center gap-4">
             <Loader2 className="animate-spin text-gold-500" size={32} />
-            <p className="text-gray-400 text-sm">Carregando história...</p>
+            <p className="text-gray-400 text-sm">{loaderText}</p>
           </div>
         ) : (
           <>
             {/* Header */}
             <div className="text-center mb-16 animate-fade-in-up">
-              <h1 className="text-4xl md:text-6xl font-serif text-white mb-6 uppercase tracking-wide">{data.title}</h1>
+              <h1 className="text-4xl md:text-6xl font-serif text-white mb-6 uppercase tracking-wide">{translatedTitle}</h1>
               <div className="h-1 w-24 bg-gold-600 mx-auto rounded-full"></div>
             </div>
 
@@ -155,8 +224,7 @@ export const About: React.FC = () => {
                     }
                     return (
                       <p key={index}>
-                        {/* Highlights specific phrases in the first paragraph */}
-                        {index === 0 ? (
+                        {index === 0 && language === 'pt' ? (
                           <>
                             Olá, me chamo <strong className="text-white font-medium">Paulo Martins</strong>, sou corretor de imóveis licenciado <span className="text-gold-400 whitespace-nowrap">(CRECI 28.844)</span> e atuo com foco exclusivo na venda de imóveis em Brasília – DF.
                           </>
@@ -174,37 +242,37 @@ export const About: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 py-16 border-y border-white/5 animate-fade-in">
               <div className="text-center group hover:bg-white/5 p-4 rounded-lg transition-colors">
                 <div className="text-[1.44rem] md:text-[1.8rem] font-serif text-white mb-2 group-hover:text-gold-400 transition-colors">
-                  {data.stat1_title}
+                  {translatedStat1Title}
                 </div>
                 <div className="text-xs text-gray-400 uppercase tracking-widest">
-                  {data.stat1_value}
+                  {translatedStat1Value}
                 </div>
               </div>
               
               <div className="text-center group hover:bg-white/5 p-4 rounded-lg transition-colors">
                 <div className="text-[1.44rem] md:text-[1.8rem] font-serif text-white mb-2 group-hover:text-gold-400 transition-colors">
-                  {data.stat2_title}
+                  {translatedStat2Title}
                 </div>
                 <div className="text-xs text-gray-400 uppercase tracking-widest">
-                  {data.stat2_value}
+                  {translatedStat2Value}
                 </div>
               </div>
 
               <div className="text-center group hover:bg-white/5 p-4 rounded-lg transition-colors">
                 <div className="text-[1.44rem] md:text-[1.8rem] font-serif text-white mb-2 group-hover:text-gold-400 transition-colors">
-                  {data.stat3_title}
+                  {translatedStat3Title}
                 </div>
                 <div className="text-xs text-gray-400 uppercase tracking-widest">
-                  {data.stat3_value}
+                  {translatedStat3Value}
                 </div>
               </div>
 
               <div className="text-center group hover:bg-white/5 p-4 rounded-lg transition-colors">
                 <div className="text-[1.44rem] md:text-[1.8rem] font-serif text-white mb-2 group-hover:text-gold-400 transition-colors">
-                  {data.stat4_title}
+                  {translatedStat4Title}
                 </div>
                 <div className="text-xs text-gray-400 uppercase tracking-widest">
-                  {data.stat4_value}
+                  {translatedStat4Value}
                 </div>
               </div>
             </div>

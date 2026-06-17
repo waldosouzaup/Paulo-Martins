@@ -26,6 +26,7 @@ import { AltoSobradinhoForm } from './pages/admin/AltoSobradinhoForm';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PropertyProvider } from './context/PropertyContext';
 import { FavoritesProvider } from './context/FavoritesContext';
+import { LanguageProvider } from './context/LanguageContext';
 import { supabase } from './lib/supabase';
 
 const { HashRouter, Routes, Route, useLocation, Navigate } = RouterDom;
@@ -272,13 +273,15 @@ function App() {
 function AppWrapper() {
     return (
         <Router>
-            <AuthProvider>
-                <PropertyProvider>
-                    <FavoritesProvider>
-                        <App />
-                    </FavoritesProvider>
-                </PropertyProvider>
-            </AuthProvider>
+            <LanguageProvider>
+                <AuthProvider>
+                    <PropertyProvider>
+                        <FavoritesProvider>
+                            <App />
+                        </FavoritesProvider>
+                    </PropertyProvider>
+                </AuthProvider>
+            </LanguageProvider>
         </Router>
     );
 }

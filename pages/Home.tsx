@@ -16,7 +16,7 @@ export const Home: React.FC = () => {
   return (
     <>
       <SEOHelper 
-        title="Início" 
+        title="" 
         description="Encontre os melhores imóveis em Brasília com Paulo Martins. Casas, apartamentos e coberturas exclusivas nas melhores localizações do Distrito Federal." 
         image="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&h=630&q=80"
         urlPath="/"

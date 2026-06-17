@@ -2,12 +2,32 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { createClient } from "@supabase/supabase-js";
+import { GoogleGenAI } from "@google/genai";
 
 // Supabase details from connection file
 const supabaseUrl = 'https://mkadaugyoptuptxlgpdq.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1rYWRhdWd5b3B0dXB0eGxncGRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NzE4NjEsImV4cCI6MjA4MTU0Nzg2MX0.ey7aqjXJ0XMlxddvF8HY1hlB5UdXLS90qP-iHx6YZLw';
 
 const supabaseServer = createClient(supabaseUrl, supabaseKey);
+
+// Lazy initialization of GoogleGenAI SDK to respect environment variables safely
+let geminiClient: GoogleGenAI | null = null;
+function getGeminiClient(): GoogleGenAI | null {
+  if (!geminiClient) {
+    const key = process.env.GEMINI_API_KEY;
+    if (key) {
+      geminiClient = new GoogleGenAI({
+        apiKey: key,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      });
+    }
+  }
+  return geminiClient;
+}
 
 // Maintain logs of previous checks
 const pingLogs: Array<{ timestamp: string; success: boolean; message: string }> = [];
@@ -51,6 +71,81 @@ async function startServer() {
 
   // JSON parsing middleware
   app.use(express.json());
+
+  // API Route: Translate text on the fly using Gemini
+  app.post("/api/translate", async (req, res) => {
+    const { text, to } = req.body;
+    if (!text || !text.trim()) {
+      return res.json({ translation: "" });
+    }
+    if (!to || to === "pt") {
+      return res.json({ translation: text });
+    }
+
+    const client = getGeminiClient();
+    if (!client) {
+      console.warn("[Translation Backend] Gemini Client is not available. Check GEMINI_API_KEY.");
+      return res.json({ translation: text }); // Fallback
+    }
+
+    const targetLang = to === "en" ? "English" : to === "es" ? "Spanish" : "Portuguese";
+
+    try {
+      const response = await client.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: `Translate the following text into natural, professional brazilian real estate matching ${targetLang}. Return ONLY the direct translation of the content, preserving any formatting but with NO explanation or markdown wrappers:
+
+${text}`,
+      });
+
+      const translated = response.text?.trim() || text;
+      res.json({ translation: translated });
+    } catch (err) {
+      console.error(`[Translation Backend] Error translating text to ${to}:`, err);
+      res.json({ translation: text }); // Fallback
+    }
+  });
+
+  // API Route: Translate list of texts on the fly using Gemini (e.g. features list)
+  app.post("/api/translate-list", async (req, res) => {
+    const { texts, to } = req.body;
+    if (!texts || !Array.isArray(texts) || texts.length === 0) {
+      return res.json({ translations: [] });
+    }
+    if (!to || to === "pt") {
+      return res.json({ translations: texts });
+    }
+
+    const client = getGeminiClient();
+    if (!client) {
+      console.warn("[Translation Backend] Gemini Client is not available for list translation.");
+      return res.json({ translations: texts }); // Fallback
+    }
+
+    const targetLang = to === "en" ? "English" : to === "es" ? "Spanish" : "Portuguese";
+
+    try {
+      const response = await client.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: `You are an expert real estate translator. Translate this array of strings into ${targetLang}. Maintain exact list size and ordering. Return a raw JSON array of strings ONLY. No markdown, no "json" wrappers, no other text:
+
+${JSON.stringify(texts)}`,
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
+
+      const bodyText = response.text?.trim() || "";
+      const parsed = JSON.parse(bodyText);
+      if (Array.isArray(parsed)) {
+        return res.json({ translations: parsed });
+      }
+      res.json({ translations: texts });
+    } catch (err) {
+      console.error(`[Translation Backend] Error translating list to ${to}:`, err);
+      res.json({ translations: texts }); // Fallback
+    }
+  });
 
   // API Route: Manually trigger the keep-alive query and view logs
   app.get("/api/keep-alive", async (req, res) => {

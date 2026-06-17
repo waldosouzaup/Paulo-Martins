@@ -10,7 +10,7 @@ interface SEOHelperProps {
 
 export const SEOHelper: React.FC<SEOHelperProps> = ({ title, description, image, urlPath }) => {
   useEffect(() => {
-    const fullTitle = `${title} | Paulo Martins – Brasília`;
+    const fullTitle = title ? `${title} | Paulo Martins – Brasília` : "Paulo Martins – Brasília";
     document.title = fullTitle;
     
     // Helper to select or automatically create meta tags
