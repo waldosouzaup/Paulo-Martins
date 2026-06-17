@@ -3,7 +3,7 @@ import * as RouterDom from 'react-router-dom';
 import { useProperties } from '../context/PropertyContext';
 import { Property } from '../types';
 import { formatPropertyTag, slugify } from '../lib/utils';
-import { BedDouble, Car, Scaling, ArrowRight, MapPin, Award, CheckCircle2, Clock, Flame } from 'lucide-react';
+import { BedDouble, Car, Scaling, ArrowRight, MapPin, Award, Clock, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const { Link } = RouterDom;
@@ -146,7 +146,7 @@ export const FeaturedProperty: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
             
             {/* Image Gallery Column */}
-            <div className="lg:col-span-7 relative h-[380px] md:h-[500px] lg:min-h-[550px] overflow-hidden group">
+            <div className="lg:col-span-7 relative h-[380px] md:h-[460px] lg:h-auto overflow-hidden group">
               <AnimatePresence mode="popLayout">
                 <motion.img 
                   key={currentImgIdx}
@@ -159,7 +159,7 @@ export const FeaturedProperty: React.FC = () => {
                   className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
                 />
               </AnimatePresence>
-              <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-transparent to-[#030303]/40 pointer-events-none z-10" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20 pointer-events-none z-10" />
               
               {/* Slideshow dot indicators - right-aligned vertically */}
               {slideshowImages.length > 1 && (
@@ -199,9 +199,6 @@ export const FeaturedProperty: React.FC = () => {
                 
                 {/* Meta details */}
                 <div className="space-y-2">
-                  <div className="flex items-center text-gold-400 text-xs font-mono tracking-widest uppercase">
-                    Residência Selecionada
-                  </div>
                   <h3 id="featured-title" className="text-2xl md:text-3.5xl font-serif text-white leading-tight font-medium tracking-wide">
                     {propertyToShow.title}
                   </h3>
@@ -212,49 +209,59 @@ export const FeaturedProperty: React.FC = () => {
                 </div>
 
                 {/* Urgent Countdown Timer */}
-                <div id="featured-countdown-banner" className="bg-gradient-to-r from-gold-600/10 to-transparent border-l-2 border-gold-500 p-4 rounded-r-xl space-y-3 shadow-[0_4px_20px_rgba(197,160,40,0.05)]">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] uppercase font-mono tracking-widest text-[#caa32b] flex items-center gap-1.5 font-bold">
-                      <Clock size={12} className="animate-pulse text-[#caa32b]" />
-                      Condições Especiais Restantes
-                    </p>
-                    <span className="flex items-center gap-1 bg-red-950/40 text-red-400 px-2.5 py-0.5 rounded text-[9px] font-bold tracking-wider font-mono border border-red-500/15 animate-pulse">
-                      <Flame size={10} />
-                      OPORTUNIDADE
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-2 text-center">
-                    {/* Days */}
-                    <div className="bg-black/40 border border-white/5 rounded-lg py-2 px-1 backdrop-blur-sm">
-                      <span className="block text-lg md:text-xl font-serif text-white font-bold tracking-tight">
+                <div id="featured-countdown-banner" className="bg-gradient-to-r from-gold-600/15 to-transparent border-l-2 border-gold-500 p-4 rounded-r-xl shadow-[0_4px_20px_rgba(197,160,40,0.08)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  {/* Left: Highlight for Days & Opportunity */}
+                  <div className="flex items-center gap-3">
+                    {/* Highlighted Days badge */}
+                    <div className="bg-gold-500 text-black px-3.5 py-2 rounded-xl flex flex-col items-center justify-center shadow-lg shadow-gold-500/10 shrink-0">
+                      <span className="text-2xl font-serif font-black tracking-tight leading-none">
                         {String(timeLeft.days).padStart(2, '0')}
                       </span>
-                      <span className="block text-[8px] uppercase tracking-wider text-gray-500 font-mono">Dias</span>
+                      <span className="text-[9px] font-extrabold uppercase tracking-wider font-sans leading-none mt-1">
+                        Dias
+                      </span>
                     </div>
 
-                    {/* Hours */}
-                    <div className="bg-black/40 border border-white/5 rounded-lg py-2 px-1 backdrop-blur-sm">
-                      <span className="block text-lg md:text-xl font-serif text-white font-bold tracking-tight">
+                    {/* Highly highlighted "OPORTUNIDADE" badge and text */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="bg-red-600 text-white font-black text-[10px] tracking-widest px-2.5 py-0.5 rounded shadow-[0_0_15px_rgba(220,38,38,0.4)] uppercase font-mono animate-pulse inline-block">
+                          OPORTUNIDADE
+                        </span>
+                      </div>
+                      <p className="text-[10px] uppercase font-mono tracking-wider text-gray-400 font-medium leading-tight">
+                        Condições Especiais Restantes
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: Sleek Digital Timer (HH:MM:SS) without bottom labels */}
+                  <div className="flex items-center gap-1.5 bg-black/50 border border-white/5 rounded-xl px-4 py-2.5 backdrop-blur-sm self-start sm:self-auto">
+                    <span className="text-xs text-gray-500 font-mono uppercase tracking-wider font-bold mr-1">Tempo:</span>
+                    
+                    {/* Hour value */}
+                    <div className="text-center">
+                      <span className="text-sm font-serif text-white font-bold tracking-tight">
                         {String(timeLeft.hours).padStart(2, '0')}
                       </span>
-                      <span className="block text-[8px] uppercase tracking-wider text-gray-500 font-mono font-medium">Horas</span>
                     </div>
-
-                    {/* Minutes */}
-                    <div className="bg-black/40 border border-white/5 rounded-lg py-2 px-1 backdrop-blur-sm">
-                      <span className="block text-lg md:text-xl font-serif text-white font-bold tracking-tight">
+                    
+                    <span className="text-gold-500 font-bold mx-0.5 animate-pulse">:</span>
+                    
+                    {/* Minute value */}
+                    <div className="text-center">
+                      <span className="text-sm font-serif text-white font-bold tracking-tight">
                         {String(timeLeft.minutes).padStart(2, '0')}
                       </span>
-                      <span className="block text-[8px] uppercase tracking-wider text-gray-500 font-mono font-medium">Minutos</span>
                     </div>
-
-                    {/* Seconds */}
-                    <div className="bg-black/40 border border-white/5 rounded-lg py-2 px-1 backdrop-blur-sm border-gold-500/10">
-                      <span className="block text-lg md:text-xl font-serif text-gold-400 font-bold tracking-tight">
+                    
+                    <span className="text-gold-500 font-bold mx-0.5 animate-pulse">:</span>
+                    
+                    {/* Second value */}
+                    <div className="text-center">
+                      <span className="text-sm font-serif text-gold-400 font-bold tracking-tight">
                         {String(timeLeft.seconds).padStart(2, '0')}
                       </span>
-                      <span className="block text-[8px] uppercase tracking-wider text-gold-500/70 font-mono font-medium">Segundos</span>
                     </div>
                   </div>
                 </div>
@@ -288,21 +295,6 @@ export const FeaturedProperty: React.FC = () => {
                 <p id="featured-desc" className="text-gray-300 text-xs md:text-sm font-light leading-relaxed">
                   {propertyToShow.brief_desc_home || propertyToShow.description}
                 </p>
-
-                {/* Key architectural highlights */}
-                {propertyToShow.features && propertyToShow.features.length > 0 && (
-                  <div className="space-y-2 pt-2">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Destaques da Residência</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {propertyToShow.features.slice(0, 4).map((feat, index) => (
-                        <div key={index} className="flex items-center gap-2 text-xs text-gray-400">
-                          <CheckCircle2 size={12} className="text-gold-500 shrink-0" />
-                          <span className="truncate">{feat}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
               </div>
 

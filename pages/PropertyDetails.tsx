@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import * as RouterDom from 'react-router-dom';
-import { BedDouble, Car, Scaling, MapPin, X, ChevronLeft, ChevronRight, MessageCircle, Video, PlayCircle, Check, Share2, Linkedin, Mail, Link, CheckCheck, Printer, School, GraduationCap, ShoppingBag, Utensils, HeartPulse, HelpCircle, ChevronDown, ChevronUp, Heart, Download, Loader2, Compass, Landmark, Store, Dumbbell, Coffee, Bus } from 'lucide-react';
+import { BedDouble, Car, Scaling, MapPin, X, ChevronLeft, ChevronRight, MessageCircle, Video, PlayCircle, Check, Share2, Linkedin, Mail, Link, CheckCheck, Printer, School, GraduationCap, ShoppingBag, Utensils, HeartPulse, HelpCircle, ChevronDown, ChevronUp, Heart, Download, Loader2, Compass, Landmark, Store, Dumbbell, Coffee, Bus, ZoomIn, ZoomOut } from 'lucide-react';
 import { useProperties } from '../context/PropertyContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { SEOHelper } from '../components/SEOHelper';
@@ -56,8 +56,14 @@ export const PropertyDetails: React.FC = () => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [activeFloorPlanIndex, setActiveFloorPlanIndex] = useState(0);
   const [floorPlanLightboxOpen, setFloorPlanLightboxOpen] = useState(false);
+  const [floorPlanZoomed, setFloorPlanZoomed] = useState(false);
+
+  React.useEffect(() => {
+    setFloorPlanZoomed(false);
+  }, [activeFloorPlanIndex, floorPlanLightboxOpen]);
   const [activeVirtualTourIndex, setActiveVirtualTourIndex] = useState(0);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(prev => prev === index ? null : index);
@@ -584,7 +590,25 @@ export const PropertyDetails: React.FC = () => {
 
             <div className="mb-12">
                 <h2 className="text-2xl text-white font-serif mb-4">Sobre o Imóvel</h2>
-                <p className="text-gray-400 leading-relaxed font-light whitespace-pre-wrap">{property.description}</p>
+                <p className={`text-gray-400 leading-relaxed font-light whitespace-pre-wrap ${!isDescExpanded ? 'line-clamp-4' : ''}`}>
+                    {property.description}
+                </p>
+                {property.description && (property.description.length > 250 || property.description.split('\n').length > 4) && (
+                    <button
+                        onClick={() => setIsDescExpanded(!isDescExpanded)}
+                        className="mt-4 flex items-center gap-1.5 text-gold-400 hover:text-gold-300 font-medium text-xs tracking-wider uppercase transition-colors cursor-pointer group"
+                    >
+                        {isDescExpanded ? (
+                            <>
+                                Mostrar menos <ChevronUp size={14} className="transition-transform group-hover:-translate-y-0.5" />
+                            </>
+                        ) : (
+                            <>
+                                Mostrar mais <ChevronDown size={14} className="transition-transform group-hover:translate-y-0.5" />
+                            </>
+                        )}
+                    </button>
+                )}
             </div>
 
             {/* Nova Seção: Endereço */}
@@ -1148,13 +1172,57 @@ export const PropertyDetails: React.FC = () => {
         >
             <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
               
+              {/* Indicador de Zoom / Controle de Ampliação */}
+              <div className="absolute top-4 left-4 md:top-8 md:left-8 z-[110] flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFloorPlanZoomed(prev => !prev);
+                  }}
+                  className="bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/10 px-3.5 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95"
+                  title="Clique duas vezes na imagem ou clique aqui para dar Zoom"
+                >
+                  {floorPlanZoomed ? (
+                    <>
+                      <ZoomOut size={14} className="text-gold-400" />
+                      <span>Retirar Zoom</span>
+                    </>
+                  ) : (
+                    <>
+                      <ZoomIn size={14} className="text-gold-400" />
+                      <span>Zoom (Clique duplo)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
               {/* Imagem Ampliada */}
-              <div className="max-h-[80vh] max-w-full flex items-center justify-center flex-1">
+              <div 
+                className={`flex-1 w-full max-h-[80vh] flex ${
+                  floorPlanZoomed 
+                    ? 'overflow-auto items-start justify-start cursor-zoom-out' 
+                    : 'items-center justify-center overflow-hidden cursor-zoom-in'
+                }`}
+                onClick={(e) => {
+                  if (floorPlanZoomed) {
+                    setFloorPlanZoomed(false);
+                  }
+                }}
+              >
                 <img 
                   src={displayFloorPlans[activeFloorPlanIndex]?.url} 
-                  className="max-h-[75vh] max-w-full object-contain pointer-events-auto rounded-lg shadow-2xl" 
+                  className={`transition-all duration-300 rounded-lg shadow-2xl pointer-events-auto ${
+                    floorPlanZoomed 
+                      ? 'max-h-none max-w-none w-[180%] md:w-[250%] h-auto m-auto' 
+                      : 'max-h-[75vh] max-w-full object-contain'
+                  }`} 
                   alt={displayFloorPlans[activeFloorPlanIndex]?.description || "Planta do Imóvel Ampliada"} 
                   onClick={(e) => e.stopPropagation()}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    setFloorPlanZoomed(prev => !prev);
+                  }}
                 />
               </div>
 
