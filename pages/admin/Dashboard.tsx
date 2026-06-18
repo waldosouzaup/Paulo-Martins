@@ -300,6 +300,7 @@ export const Dashboard: React.FC = () => {
                     <th className="p-6">Imóvel</th>
                     <th className="p-6">Preço</th>
                     <th className="p-6">Localização</th>
+                    <th className="p-6">Ordem</th>
                     <th className="p-6 text-right">Ações</th>
                   </tr>
                 </thead>
@@ -325,6 +326,15 @@ export const Dashboard: React.FC = () => {
                       </td>
                       <td className="p-6 text-gold-400 font-medium">{prop.price}</td>
                       <td className="p-6 text-gray-400 text-sm">{prop.location}</td>
+                      <td className="p-6">
+                        {prop.display_order && prop.display_order > 0 ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-gold-400 bg-gold-400/10 border border-gold-400/20 px-2 py-0.5 rounded">
+                            #{prop.display_order}
+                          </span>
+                        ) : (
+                          <span className="text-gray-600 font-light text-xs font-mono">Padrão</span>
+                        )}
+                      </td>
                       <td className="p-6 text-right">
                         <div className="flex justify-end gap-2">
                             <Link
@@ -374,6 +384,11 @@ export const Dashboard: React.FC = () => {
                             ★ Imóvel do Mês
                           </span>
                         )}
+                        {prop.display_order && prop.display_order > 0 ? (
+                          <span className="inline-flex items-center gap-1.5 mt-2 text-[9px] uppercase tracking-wider font-semibold text-gold-400 bg-gold-400/10 px-1.5 py-0.5 rounded border border-gold-400/20 ml-2">
+                             Ordem: #{prop.display_order}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
 

@@ -39,6 +39,7 @@ export interface Property {
   seoImageUrl?: string; // Imagem SEO de compartilhamento customizada
   address?: string; // Endereço do imóvel
   datasheetUrl?: string; // Link/arquivo da ficha técnica completa (Upload ou Link)
+  display_order?: number; // Ordem que os imóveis cadastrados devem aparecer
 }
 
 export interface FloorPlan {

@@ -140,9 +140,26 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
             seoDescription: item.seo_description || '',
             seoImageUrl: item.seo_image_url || '',
             address: item.address || '',
-            datasheetUrl: item.datasheet_url || ''
+            datasheetUrl: item.datasheet_url || '',
+            display_order: item.display_order !== undefined && item.display_order !== null ? Number(item.display_order) : 0
           };
         });
+
+        // Ordenar os imóveis em memória pelo display_order de forma dinâmica e segura:
+        // Imóveis com display_order positivo (> 0) aparecem no topo, ordenados de forma crescente (1, 2, 3...)
+        // Imóveis com display_order <= 0 (ou sem ordem definida) ficam por último, mantendo a ordenação original por data de cadastro
+        mappedProperties.sort((a, b) => {
+          const orderA = a.display_order || 0;
+          const orderB = b.display_order || 0;
+          
+          if (orderA > 0 && orderB > 0) {
+            return orderA - orderB;
+          }
+          if (orderA > 0) return -1;
+          if (orderB > 0) return 1;
+          return 0; // mantém a ordem padrão de criação por data
+        });
+
         setProperties(mappedProperties);
         setConnectionStatus('online');
       }
@@ -201,8 +218,8 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const handlePropDbError = (title: string, error: any) => {
     console.error(title, error);
-    if (error && (error.code === '42703' || String(error.message || '').includes('is_featured') || String(error.message || '').includes('column') || String(error.message || '').includes('brief_desc_home') || String(error.message || '').includes('slug') || String(error.message || '').includes('floor_plan_url') || String(error.message || '').includes('floor_plans') || String(error.message || '').includes('faqs') || String(error.message || '').includes('virtual_tour_url') || String(error.message || '').includes('seo_title') || String(error.message || '').includes('seo_description') || String(error.message || '').includes('seo_image_url') || String(error.message || '').includes('nearby_banks') || String(error.message || '').includes('nearby_supermarkets') || String(error.message || '').includes('nearby_gyms') || String(error.message || '').includes('nearby_bakeries') || String(error.message || '').includes('nearby_transport') || String(error.message || '').includes('address') || String(error.message || '').includes('datasheet_url'))) {
-      alert(`Erro: Algumas novas colunas estão faltando na sua tabela "properties".\n\nPor favor, execute o seguinte comando no SQL Editor do seu painel Supabase para atualizá-la:\n\nALTER TABLE properties ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS slug TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS address TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS datasheet_url TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS floor_plan_url TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS floor_plans JSONB DEFAULT '[]'::jsonb;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS faqs JSONB DEFAULT '[]'::jsonb;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS brief_desc_home TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_school TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_university TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_shopping TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_restaurant TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_hospital TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_banks TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_supermarkets TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_gyms TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_bakeries TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_transport TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS virtual_tour_url TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS seo_title TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS seo_description TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS seo_image_url TEXT;\n\nDepois salve o imóvel novamente!`);
+    if (error && (error.code === '42703' || String(error.message || '').includes('is_featured') || String(error.message || '').includes('column') || String(error.message || '').includes('brief_desc_home') || String(error.message || '').includes('slug') || String(error.message || '').includes('floor_plan_url') || String(error.message || '').includes('floor_plans') || String(error.message || '').includes('faqs') || String(error.message || '').includes('virtual_tour_url') || String(error.message || '').includes('seo_title') || String(error.message || '').includes('seo_description') || String(error.message || '').includes('seo_image_url') || String(error.message || '').includes('nearby_banks') || String(error.message || '').includes('nearby_supermarkets') || String(error.message || '').includes('nearby_gyms') || String(error.message || '').includes('nearby_bakeries') || String(error.message || '').includes('nearby_transport') || String(error.message || '').includes('address') || String(error.message || '').includes('datasheet_url') || String(error.message || '').includes('display_order'))) {
+      alert(`Erro: Algumas novas colunas estão faltando na sua tabela "properties".\n\nPor favor, execute o seguinte comando no SQL Editor do seu painel Supabase para atualizá-la:\n\nALTER TABLE properties ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS slug TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS address TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS datasheet_url TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS floor_plan_url TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS floor_plans JSONB DEFAULT '[]'::jsonb;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS faqs JSONB DEFAULT '[]'::jsonb;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS brief_desc_home TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_school TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_university TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_shopping TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_restaurant TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_hospital TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_banks TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_supermarkets TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_gyms TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_bakeries TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS nearby_transport TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS virtual_tour_url TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS seo_title TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS seo_description TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS seo_image_url TEXT;\nALTER TABLE properties ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;\n\nDepois salve o imóvel novamente!`);
       return;
     }
     const message = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
@@ -249,7 +266,8 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
       seo_description: property.seoDescription || '',
       seo_image_url: property.seoImageUrl || '',
       address: property.address || '',
-      datasheet_url: property.datasheetUrl || ''
+      datasheet_url: property.datasheetUrl || '',
+      display_order: property.display_order || 0
     };
 
     if (property.is_featured) {
@@ -278,7 +296,7 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
                                   errorMsg.includes('schema cache');
         if (isMissingColError) {
           const missingCol = extractMissingColumn(errorMsg) || 
-                             ['seo_description', 'seo_title', 'seo_image_url', 'virtual_tour_url', 'brief_desc_home', 'floor_plan_url', 'floor_plans', 'faqs', 'nearby_school', 'nearby_university', 'nearby_shopping', 'nearby_restaurant', 'nearby_hospital', 'nearby_banks', 'nearby_supermarkets', 'nearby_gyms', 'nearby_bakeries', 'nearby_transport', 'address', 'datasheet_url', 'is_featured', 'slug'].find(col => errorMsg.includes(col));
+                             ['seo_description', 'seo_title', 'seo_image_url', 'virtual_tour_url', 'brief_desc_home', 'floor_plan_url', 'floor_plans', 'faqs', 'nearby_school', 'nearby_university', 'nearby_shopping', 'nearby_restaurant', 'nearby_hospital', 'nearby_banks', 'nearby_supermarkets', 'nearby_gyms', 'nearby_bakeries', 'nearby_transport', 'address', 'datasheet_url', 'is_featured', 'slug', 'display_order'].find(col => errorMsg.includes(col));
           
           if (missingCol && missingCol in payload) {
             console.warn(`[Self-Healing Add] Removendo coluna inexistente '${missingCol}' do payload e tentando novamente.`);
@@ -338,7 +356,8 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         seo_description: property.seoDescription || '',
         seo_image_url: property.seoImageUrl || '',
         address: property.address || '',
-        datasheet_url: property.datasheetUrl || ''
+        datasheet_url: property.datasheetUrl || '',
+        display_order: property.display_order || 0
       };
   
       const numericId = !isNaN(Number(property.id)) ? Number(property.id) : null;
@@ -387,7 +406,7 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
                                     errorMsg.includes('schema cache');
           if (isMissingColError) {
             const missingCol = extractMissingColumn(errorMsg) || 
-                               ['seo_description', 'seo_title', 'seo_image_url', 'virtual_tour_url', 'brief_desc_home', 'floor_plan_url', 'floor_plans', 'faqs', 'nearby_school', 'nearby_university', 'nearby_shopping', 'nearby_restaurant', 'nearby_hospital', 'nearby_banks', 'nearby_supermarkets', 'nearby_gyms', 'nearby_bakeries', 'nearby_transport', 'address', 'datasheet_url', 'is_featured', 'slug'].find(col => errorMsg.includes(col));
+                               ['seo_description', 'seo_title', 'seo_image_url', 'virtual_tour_url', 'brief_desc_home', 'floor_plan_url', 'floor_plans', 'faqs', 'nearby_school', 'nearby_university', 'nearby_shopping', 'nearby_restaurant', 'nearby_hospital', 'nearby_banks', 'nearby_supermarkets', 'nearby_gyms', 'nearby_bakeries', 'nearby_transport', 'address', 'datasheet_url', 'is_featured', 'slug', 'display_order'].find(col => errorMsg.includes(col));
             
             if (missingCol && missingCol in payload) {
               console.warn(`[Self-Healing Update] Removendo coluna inexistente '${missingCol}' do payload de update e tentando novamente.`);
@@ -418,7 +437,7 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
                                       errorMsg.includes('schema cache');
             if (isMissingColError) {
               const missingCol = extractMissingColumn(errorMsg) || 
-                                 ['seo_description', 'seo_title', 'seo_image_url', 'virtual_tour_url', 'brief_desc_home', 'floor_plan_url', 'floor_plans', 'faqs', 'nearby_school', 'nearby_university', 'nearby_shopping', 'nearby_restaurant', 'nearby_hospital', 'nearby_banks', 'nearby_supermarkets', 'nearby_gyms', 'nearby_bakeries', 'nearby_transport', 'address', 'datasheet_url', 'is_featured', 'slug'].find(col => errorMsg.includes(col));
+                                 ['seo_description', 'seo_title', 'seo_image_url', 'virtual_tour_url', 'brief_desc_home', 'floor_plan_url', 'floor_plans', 'faqs', 'nearby_school', 'nearby_university', 'nearby_shopping', 'nearby_restaurant', 'nearby_hospital', 'nearby_banks', 'nearby_supermarkets', 'nearby_gyms', 'nearby_bakeries', 'nearby_transport', 'address', 'datasheet_url', 'is_featured', 'slug', 'display_order'].find(col => errorMsg.includes(col));
               
               if (missingCol && missingCol in payload) {
                 console.warn(`[Self-Healing Update Fallback] Removendo coluna inexistente '${missingCol}' do payload e tentando novamente.`);

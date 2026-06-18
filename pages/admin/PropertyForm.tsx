@@ -55,7 +55,8 @@ export const PropertyForm: React.FC = () => {
     virtualTourUrl: '',
     seoTitle: '',
     seoDescription: '',
-    seoImageUrl: ''
+    seoImageUrl: '',
+    display_order: '0'
   });
 
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
@@ -175,7 +176,8 @@ export const PropertyForm: React.FC = () => {
                 virtualTourUrl: propertyToEdit.virtualTourUrl ?? '',
                 seoTitle: propertyToEdit.seoTitle ?? '',
                 seoDescription: propertyToEdit.seoDescription ?? '',
-                seoImageUrl: propertyToEdit.seoImageUrl ?? ''
+                seoImageUrl: propertyToEdit.seoImageUrl ?? '',
+                display_order: String(propertyToEdit.display_order ?? '0')
             });
             setGalleryImages(propertyToEdit.images || []);
             setFaqs(propertyToEdit.faqs || []);
@@ -401,7 +403,8 @@ export const PropertyForm: React.FC = () => {
             seoTitle: formData.seoTitle.trim(),
             seoDescription: formData.seoDescription.trim(),
             seoImageUrl: formData.seoImageUrl.trim(),
-            faqs: faqs
+            faqs: faqs,
+            display_order: formData.display_order ? Number(formData.display_order) : 0
         };
         
         let success = false;
@@ -554,7 +557,7 @@ export const PropertyForm: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div>
                             <label className="block text-gray-400 text-xs uppercase tracking-widest mb-2 font-semibold">Quartos</label>
                             <input required name="beds" value={formData.beds} onChange={handleChange} className="w-full bg-dark-950 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-gold-500 focus:outline-none" />
@@ -567,7 +570,14 @@ export const PropertyForm: React.FC = () => {
                             <label className="block text-gray-400 text-xs uppercase tracking-widest mb-2 font-semibold">Área</label>
                             <input required name="area" value={formData.area} onChange={handleChange} className="w-full bg-dark-950 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-gold-500 focus:outline-none" />
                         </div>
+                        <div>
+                            <label className="block text-gray-400 text-xs uppercase tracking-widest mb-2 font-semibold text-gold-400" title="Controla a ordem de listagem. Menores números aparecem primeiro na página de propriedades.">Ordem de Exibição</label>
+                            <input type="number" name="display_order" value={formData.display_order} onChange={handleChange} className="w-full bg-dark-950 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-gold-500 focus:outline-none text-gold-400 font-bold" min="0" placeholder="Ex: 1" />
+                        </div>
                     </div>
+                    <span className="text-[10px] text-gray-500 -mt-2 block">
+                        Define a prioridade na página de imóveis (ex: 1, 2, 3...). Imóveis com ordens menores (como 1) aparecem antes. Deixe em 0 ou vazio para listar por ordem de data.
+                    </span>
 
                     <div>
                         <label className="block text-gray-400 text-xs uppercase tracking-widest mb-2 font-semibold">Descrição Detalhada</label>

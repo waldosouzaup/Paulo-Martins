@@ -272,14 +272,28 @@ export const FeaturedProperty: React.FC = () => {
                     <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Dormitórios</p>
                     <p className="text-[13px] font-medium text-gray-200 flex items-center gap-1.5 tracking-wide">
                       <BedDouble size={14} className="text-gold-500 shrink-0" />
-                      {propertyToShow.beds} {Number(propertyToShow.beds) === 1 ? 'Suíte' : 'Suítes'}
+                      {(() => {
+                        const beds = propertyToShow.beds || '';
+                        const lowercase = beds.toLowerCase();
+                        if (lowercase.includes('quarto') || lowercase.includes('dormit') || lowercase.includes('suít') || lowercase.includes('suite')) {
+                          return beds;
+                        }
+                        return `${beds} ${Number(beds) === 1 ? 'Suíte' : 'Suítes'}`;
+                      })()}
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Vagas</p>
                     <p className="text-[13px] font-medium text-gray-200 flex items-center gap-1.5 tracking-wide">
                       <Car size={14} className="text-gold-500 shrink-0" />
-                      {propertyToShow.parking} {Number(propertyToShow.parking) === 1 ? 'Vaga' : 'Vagas'}
+                      {(() => {
+                        const parking = propertyToShow.parking || '';
+                        const lowercase = parking.toLowerCase();
+                        if (lowercase.includes('vaga') || lowercase.includes('garag')) {
+                          return parking;
+                        }
+                        return `${parking} ${Number(parking) === 1 ? 'Vaga' : 'Vagas'}`;
+                      })()}
                     </p>
                   </div>
                   <div className="space-y-1">

@@ -45,6 +45,66 @@ const imageToBase64 = (url: string): Promise<string | null> => {
   });
 };
 
+const optimizeUnsplashUrl = (url: string) => {
+  if (!url) return url;
+  if (url.includes('images.unsplash.com')) {
+    try {
+      const urlObj = new URL(url);
+      urlObj.searchParams.set('w', '2400');
+      urlObj.searchParams.set('q', '90');
+      urlObj.searchParams.set('auto', 'format,compress');
+      urlObj.searchParams.set('fit', 'crop');
+      return urlObj.toString();
+    } catch (e) {
+      if (url.includes('?')) {
+        return url.replace(/w=\d+/, 'w=2400').replace(/q=\d+/, 'q=90');
+      }
+      return `${url}?auto=format,compress&fit=crop&w=2400&q=90`;
+    }
+  }
+  return url;
+};
+
+const optimizeUnsplashUrlMedium = (url: string) => {
+  if (!url) return url;
+  if (url.includes('images.unsplash.com')) {
+    try {
+      const urlObj = new URL(url);
+      urlObj.searchParams.set('w', '800');
+      urlObj.searchParams.set('q', '85');
+      urlObj.searchParams.set('auto', 'format,compress');
+      urlObj.searchParams.set('fit', 'crop');
+      return urlObj.toString();
+    } catch (e) {
+      if (url.includes('?')) {
+        return url.replace(/w=\d+/, 'w=800').replace(/q=\d+/, 'q=85');
+      }
+      return `${url}?auto=format,compress&fit=crop&w=800&q=85`;
+    }
+  }
+  return url;
+};
+
+const optimizeUnsplashUrlThumbnail = (url: string) => {
+  if (!url) return url;
+  if (url.includes('images.unsplash.com')) {
+    try {
+      const urlObj = new URL(url);
+      urlObj.searchParams.set('w', '350');
+      urlObj.searchParams.set('q', '80');
+      urlObj.searchParams.set('auto', 'format,compress');
+      urlObj.searchParams.set('fit', 'crop');
+      return urlObj.toString();
+    } catch (e) {
+      if (url.includes('?')) {
+        return url.replace(/w=\d+/, 'w=350').replace(/q=\d+/, 'q=80');
+      }
+      return `${url}?auto=format,compress&fit=crop&w=350&q=80`;
+    }
+  }
+  return url;
+};
+
 export const PropertyDetails: React.FC = () => {
   const { id, idOrSlug } = useParams<{ id?: string; idOrSlug?: string }>();
   const { properties, trackingSettings } = useProperties();
@@ -245,14 +305,14 @@ export const PropertyDetails: React.FC = () => {
     const items = parseNearbyItems(text);
     if (items.length === 0) return null;
     if (items.length === 1) {
-      return <p className="text-white text-sm font-medium leading-relaxed">{items[0]}</p>;
+      return <p className="text-gray-300 text-sm font-light leading-relaxed">{items[0]}</p>;
     }
     return (
-      <ul className="space-y-2 mt-2 pl-1">
+      <ul className="space-y-1.5 mt-2 pl-1">
         {items.map((item, idx) => (
-          <li key={idx} className="flex items-start gap-2.5 text-white text-sm font-medium leading-relaxed group">
-            <span className="w-1.5 h-1.5 rounded-full bg-gold-500 mt-2 shrink-0 transition-all duration-300 group-hover:scale-125" />
-            <span className="text-gray-200 group-hover:text-white transition-colors duration-200">{item}</span>
+          <li key={idx} className="flex items-start gap-2.5 text-gray-300 text-sm font-light leading-relaxed group">
+            <span className="w-[5px] h-[5px] rounded-full bg-gold-500/60 mt-2 shrink-0 transition-all duration-300 group-hover:scale-125 group-hover:bg-gold-500" />
+            <span className="text-gray-300 group-hover:text-gold-400 transition-colors duration-200">{item}</span>
           </li>
         ))}
       </ul>
@@ -272,7 +332,8 @@ export const PropertyDetails: React.FC = () => {
     property.nearby_transport
   );
 
-  const allImages = property.images && property.images.length > 0 ? property.images : [property.imageUrl];
+  const rawImagesList = property.images && property.images.length > 0 ? property.images : [property.imageUrl || ''];
+  const allImages = rawImagesList.map(url => optimizeUnsplashUrl(url));
 
   const displayFloorPlans = property.floorPlans && property.floorPlans.length > 0
     ? property.floorPlans
@@ -783,7 +844,7 @@ export const PropertyDetails: React.FC = () => {
                     : 'border-white/5 opacity-50 hover:opacity-100 hover:border-white/20'
                 }`}
               >
-                <img src={img} className="w-full h-full object-cover pointer-events-none" alt={`Miniatura ${idx + 1}`} />
+                <img src={optimizeUnsplashUrlThumbnail(img)} className="w-full h-full object-cover pointer-events-none" alt={`Miniatura ${idx + 1}`} />
                 <div className={`absolute inset-0 ${heroImageIndex === idx ? 'bg-transparent' : 'bg-black/20 hover:bg-transparent'} transition-colors duration-200`} />
               </button>
             ))}
@@ -796,20 +857,20 @@ export const PropertyDetails: React.FC = () => {
             {/* Características em Cards Estilizados */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12 border-y border-white/5 py-12">
                 <div className="bg-[#0c0c0c] border border-white/5 p-8 rounded-2xl flex flex-col items-center justify-center text-center group hover:border-gold-600/30 transition-all duration-300">
-                    <BedDouble size={28} className="text-gold-400 mb-4" />
-                    <span className="text-white font-medium text-sm md:text-base leading-tight tracking-wide">
+                    <BedDouble size={28} className="text-gold-400 mb-4 animate-pulse-slow" />
+                    <span className="text-gray-300 font-light text-sm md:text-base leading-tight tracking-wide">
                         {property.beds}
                     </span>
                 </div>
                 <div className="bg-[#0c0c0c] border border-white/5 p-8 rounded-2xl flex flex-col items-center justify-center text-center group hover:border-gold-600/30 transition-all duration-300">
-                    <Car size={28} className="text-gold-400 mb-4" />
-                    <span className="text-white font-medium text-sm md:text-base leading-tight tracking-wide">
+                    <Car size={28} className="text-gold-400 mb-4 animate-pulse-slow" />
+                    <span className="text-gray-300 font-light text-sm md:text-base leading-tight tracking-wide">
                         {property.parking}
                     </span>
                 </div>
                 <div className="bg-[#0c0c0c] border border-white/5 p-8 rounded-2xl flex flex-col items-center justify-center text-center group hover:border-gold-600/30 transition-all duration-300">
-                    <Scaling size={28} className="text-gold-400 mb-4" />
-                    <span className="text-white font-medium text-sm md:text-base leading-tight tracking-wide">
+                    <Scaling size={28} className="text-gold-400 mb-4 animate-pulse-slow" />
+                    <span className="text-gray-300 font-light text-sm md:text-base leading-tight tracking-wide">
                         {property.area}
                     </span>
                 </div>
@@ -1190,7 +1251,7 @@ export const PropertyDetails: React.FC = () => {
                           }}
                         >
                             <img 
-                              src={img} 
+                              src={optimizeUnsplashUrlMedium(img)} 
                               className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500" 
                               alt={`Foto ${idx + 1} - ${property.title}`} 
                             />
@@ -1580,14 +1641,28 @@ export const PropertyDetails: React.FC = () => {
             <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-semibold mb-1">Dormitórios</p>
             <p className="text-base font-bold text-slate-800 flex items-center justify-center gap-2">
               <BedDouble size={16} className="text-[#a37e17]" />
-              {property.beds} {Number(property.beds) === 1 ? 'Suíte' : 'Suítes'}
+              {(() => {
+                const beds = property.beds || '';
+                const lowercase = beds.toLowerCase();
+                if (lowercase.includes('quarto') || lowercase.includes('dormit') || lowercase.includes('suít') || lowercase.includes('suite')) {
+                  return beds;
+                }
+                return `${beds} ${Number(beds) === 1 ? 'Suíte' : 'Suítes'}`;
+              })()}
             </p>
           </div>
           <div className="text-center border-x border-slate-200">
             <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-semibold mb-1">Vagas de Garagem</p>
             <p className="text-base font-bold text-slate-800 flex items-center justify-center gap-2">
               <Car size={16} className="text-[#a37e17]" />
-              {property.parking} {Number(property.parking) === 1 ? 'Vaga' : 'Vagas'}
+              {(() => {
+                const parking = property.parking || '';
+                const lowercase = parking.toLowerCase();
+                if (lowercase.includes('vaga') || lowercase.includes('garag')) {
+                  return parking;
+                }
+                return `${parking} ${Number(parking) === 1 ? 'Vaga' : 'Vagas'}`;
+              })()}
             </p>
           </div>
           <div className="text-center">
