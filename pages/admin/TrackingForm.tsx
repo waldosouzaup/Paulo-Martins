@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as RouterDom from 'react-router-dom';
-import { ArrowLeft, Save, Loader2, Database, Check, AlertCircle, Code, Shield, Image as ImageIcon, Phone, Instagram } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Database, Check, AlertCircle, Code, Shield, Image as ImageIcon, Phone, Instagram, Star } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { SEOHelper } from '../../components/SEOHelper';
 import { useProperties } from '../../context/PropertyContext';
@@ -16,6 +16,8 @@ interface TrackingData {
   home_hero_image: string;
   whatsapp_number?: string;
   instagram_link?: string;
+  broker_image?: string;
+  show_google_reviews?: boolean;
 }
 
 const DEFAULT_TRACKING: TrackingData = {
@@ -26,7 +28,9 @@ const DEFAULT_TRACKING: TrackingData = {
   body_scripts: '',
   home_hero_image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=2070&auto=format&fit=crop',
   whatsapp_number: '5561991176958',
-  instagram_link: 'https://www.instagram.com/paulomartins_imoveis/'
+  instagram_link: 'https://www.instagram.com/paulomartins_imoveis/',
+  broker_image: 'https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png',
+  show_google_reviews: true
 };
 
 export const TrackingForm: React.FC = () => {
@@ -53,6 +57,14 @@ export const TrackingForm: React.FC = () => {
         if (error) {
           console.warn('Erro ao carregar tabela tracking_settings. Usando valores padrão:', error);
         } else if (data) {
+          let reviewsVal = true;
+          const cachedVal = localStorage.getItem('show_google_reviews_fallback');
+          if (cachedVal !== null) {
+            reviewsVal = cachedVal === 'true';
+          } else if (data.show_google_reviews !== undefined && data.show_google_reviews !== null) {
+            reviewsVal = !!data.show_google_reviews;
+          }
+
           setFormData({
             id: data.id || 'global-tracking',
             google_tag_id: data.google_tag_id || '',
@@ -62,7 +74,8 @@ export const TrackingForm: React.FC = () => {
             home_hero_image: data.home_hero_image || DEFAULT_TRACKING.home_hero_image,
             whatsapp_number: data.whatsapp_number || DEFAULT_TRACKING.whatsapp_number,
             instagram_link: data.instagram_link || DEFAULT_TRACKING.instagram_link,
-            broker_image: data.broker_image || DEFAULT_TRACKING.broker_image
+            broker_image: data.broker_image || DEFAULT_TRACKING.broker_image,
+            show_google_reviews: reviewsVal
           });
         }
       } catch (err) {
@@ -142,21 +155,53 @@ export const TrackingForm: React.FC = () => {
     setMessage('');
 
     try {
-      const { error: saveError } = await supabase
-        .from('tracking_settings')
-        .upsert({
-          id: 'global-tracking',
-          google_tag_id: formData.google_tag_id.trim(),
-          meta_pixel_id: formData.meta_pixel_id.trim(),
-          head_scripts: formData.head_scripts.trim(),
-          body_scripts: formData.body_scripts.trim(),
-          home_hero_image: formData.home_hero_image.trim(),
-          whatsapp_number: formData.whatsapp_number ? formData.whatsapp_number.trim() : '5561991176958',
-          instagram_link: formData.instagram_link ? formData.instagram_link.trim() : 'https://www.instagram.com/paulomartins_imoveis/',
-          broker_image: formData.broker_image ? formData.broker_image.trim() : 'https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png'
-        });
+      const payload: Record<string, any> = {
+        id: 'global-tracking',
+        google_tag_id: formData.google_tag_id.trim(),
+        meta_pixel_id: formData.meta_pixel_id.trim(),
+        head_scripts: formData.head_scripts.trim(),
+        body_scripts: formData.body_scripts.trim(),
+        home_hero_image: formData.home_hero_image.trim(),
+        whatsapp_number: formData.whatsapp_number ? formData.whatsapp_number.trim() : '5561991176958',
+        instagram_link: formData.instagram_link ? formData.instagram_link.trim() : 'https://www.instagram.com/paulomartins_imoveis/',
+        broker_image: formData.broker_image ? formData.broker_image.trim() : 'https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png',
+        show_google_reviews: formData.show_google_reviews ?? true
+      };
 
-      if (saveError) {
+      let saveError: any = null;
+      try {
+        const { error } = await supabase
+          .from('tracking_settings')
+          .upsert(payload);
+        saveError = error;
+      } catch (err) {
+        saveError = err;
+      }
+
+      if (saveError && (saveError.code === '42703' || String(saveError.message || '').includes('show_google_reviews'))) {
+        console.warn('[Self-Healing Save] show_google_reviews column does not exist yet. Using localStorage fallback and retrying save.');
+        
+        const backupVal = payload.show_google_reviews;
+        delete payload.show_google_reviews;
+
+        const { error: retryError } = await supabase
+          .from('tracking_settings')
+          .upsert(payload);
+
+        if (retryError) {
+          if (retryError.code === '42P01') {
+            throw new Error('A tabela "tracking_settings" não existe no seu banco de dados Supabase. Execute o comando SQL em seu painel para criá-la!');
+          }
+          if (retryError.code === '42703') {
+            throw new Error('Uma ou mais colunas de contato estão faltando na sua tabela "tracking_settings" (como "home_hero_image", "whatsapp_number", "instagram_link" ou "broker_image"). Execute o seguinte comando no SQL Editor do seu Supabase para adicioná-las:\n\nALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS home_hero_image TEXT;\nALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;\nALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS instagram_link TEXT;\nALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS broker_image TEXT;');
+          }
+          throw retryError;
+        }
+
+        localStorage.setItem('show_google_reviews_fallback', String(backupVal));
+        await refreshTrackingSettings();
+        setMessage('Configurações salvas! Nota: A coluna "show_google_reviews" não foi encontrada no banco. Usamos um cache local temporário. Para correção permanente, execute o script SQL do painel.');
+      } else if (saveError) {
         if (saveError.code === '42P01') {
           throw new Error('A tabela "tracking_settings" não existe no seu banco de dados Supabase. Execute o comando SQL em seu painel para criá-la!');
         }
@@ -164,10 +209,11 @@ export const TrackingForm: React.FC = () => {
           throw new Error('Uma ou mais colunas de contato estão faltando na sua tabela "tracking_settings" (como "home_hero_image", "whatsapp_number", "instagram_link" ou "broker_image"). Execute o seguinte comando no SQL Editor do seu Supabase para adicioná-las:\n\nALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS home_hero_image TEXT;\nALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;\nALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS instagram_link TEXT;\nALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS broker_image TEXT;');
         }
         throw saveError;
+      } else {
+        localStorage.removeItem('show_google_reviews_fallback');
+        await refreshTrackingSettings();
+        setMessage('Configurações salvas com sucesso!');
       }
-
-      await refreshTrackingSettings();
-      setMessage('Configurações salvas com sucesso!');
     } catch (err: any) {
       console.error('Erro ao salvar configurações:', err);
       setError(err.message || 'Erro ao salvar as configurações.');
@@ -187,6 +233,7 @@ CREATE TABLE IF NOT EXISTS tracking_settings (
   whatsapp_number TEXT,
   instagram_link TEXT,
   broker_image TEXT,
+  show_google_reviews BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -195,6 +242,7 @@ ALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS home_hero_image TEXT;
 ALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;
 ALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS instagram_link TEXT;
 ALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS broker_image TEXT;
+ALTER TABLE tracking_settings ADD COLUMN IF NOT EXISTS show_google_reviews BOOLEAN DEFAULT TRUE;
 
 -- Habilitar RLS (Opcional)
 ALTER TABLE tracking_settings ENABLE ROW LEVEL SECURITY;
@@ -438,10 +486,38 @@ CREATE POLICY "Permitir tudo para administradores autenticados" ON tracking_sett
                   Integrações Prontas (Opcional)
                 </h3>
                 <p className="text-xs text-gray-400 mb-6 leading-relaxed">
-                  Insira apenas o ID correspondente aos seus serviços para que o applet injete os carregamentos padrões automaticamente para você.
+                  Configure as ferramentas de rastreamento e integrações pré-fabricadas abaixo para impulsionar suas campanhas.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Google Reviews Toggle */}
+                  <div className="md:col-span-2 bg-[#0c0c0c] border border-white/5 rounded-xl p-5 flex items-center justify-between gap-6 hover:border-gold-500/10 transition-all">
+                    <div className="space-y-1">
+                      <label className="block text-white text-sm font-semibold flex items-center gap-2">
+                        <Star size={16} className="text-gold-500 fill-gold-500" />
+                        Habilitar Bloco de Avaliações do Google
+                      </label>
+                      <p className="text-gray-400 text-xs leading-relaxed max-w-xl">
+                        Quando habilitado, exibe as avaliações de clientes de Paulo Martins Imóveis com link direto para o perfil oficial de compartilhamento no Google (<a href="https://share.google/NNUU9Rw2bQp5D37fU" target="_blank" rel="noopener noreferrer" className="text-gold-400 underline">share.google/NNUU9Rw2bQp5D37fU</a>).
+                      </p>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, show_google_reviews: !prev.show_google_reviews }))}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          formData.show_google_reviews ? 'bg-gold-500' : 'bg-dark-950 border-white/10'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            formData.show_google_reviews ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Google Analytics ID */}
                   <div>
                     <label className="block text-gray-400 text-xs uppercase tracking-widest mb-2 font-semibold">Google Analytics / Google Tag (Measurement ID)</label>

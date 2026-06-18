@@ -16,6 +16,7 @@ export interface TrackingSettings {
   whatsapp_number?: string;
   instagram_link?: string;
   broker_image?: string;
+  show_google_reviews?: boolean;
 }
 
 interface PropertyContextType {
@@ -52,6 +53,15 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
       }
       
       const current = data || {};
+      
+      let finalShowReviews = true;
+      const cachedReviewsFallback = localStorage.getItem('show_google_reviews_fallback');
+      if (cachedReviewsFallback !== null) {
+        finalShowReviews = cachedReviewsFallback === 'true';
+      } else if (current.show_google_reviews !== undefined && current.show_google_reviews !== null) {
+        finalShowReviews = !!current.show_google_reviews;
+      }
+
       setTrackingSettings({
         id: current.id || 'global-tracking',
         google_tag_id: current.google_tag_id || '',
@@ -61,7 +71,8 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         home_hero_image: current.home_hero_image || 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=2070&auto=format&fit=crop',
         whatsapp_number: current.whatsapp_number || '5561991176958',
         instagram_link: current.instagram_link || '#',
-        broker_image: current.broker_image || 'https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png'
+        broker_image: current.broker_image || 'https://pmartinsimob.com.br/wp-content/uploads/2025/09/paulo_martins2.png',
+        show_google_reviews: finalShowReviews
       });
     } catch (err) {
       console.error('Falha geral ao buscar tracking_settings:', err);

@@ -6,6 +6,7 @@ import { PropertyGrid } from '../components/PropertyGrid';
 import { Features } from '../components/Features';
 import { SEOHelper } from '../components/SEOHelper';
 import { PropertyAlerts } from '../components/PropertyAlerts';
+import { GoogleReviews } from '../components/GoogleReviews';
 import { useProperties } from '../context/PropertyContext';
 import { Award, ShieldCheck, Star } from 'lucide-react';
 
@@ -115,6 +116,8 @@ export const Home: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {trackingSettings?.show_google_reviews !== false && <GoogleReviews />}
 
       <section className="py-20 px-6 bg-dark-950">
         <div className="max-w-7xl mx-auto">
