@@ -21,7 +21,7 @@ export const RecoverPassword: React.FC = () => {
 
     try {
       // Formulate redirect URL for the hosted domain pmartinsimob.com.br (or local dev url if testing there)
-      const redirectUrl = window.location.origin + '/#/admin/reset-password';
+      const redirectUrl = window.location.origin + '/admin/reset-password';
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,

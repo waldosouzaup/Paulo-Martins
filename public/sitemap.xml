@@ -70,35 +70,4 @@
     <priority>0.7</priority>
   </url>
 
-  <!-- Hash Routing Fallbacks (For SPA crawlers that parse hash routes) -->
-  <url>
-    <loc>https://paulomartinscorretor.com.br/#/about</loc>
-    <lastmod>2026-06-18</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://paulomartinscorretor.com.br/#/properties</loc>
-    <lastmod>2026-06-18</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://paulomartinscorretor.com.br/#/contact</loc>
-    <lastmod>2026-06-18</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://paulomartinscorretor.com.br/#/privacy</loc>
-    <lastmod>2026-06-18</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://paulomartinscorretor.com.br/#/alto-sobradinho</loc>
-    <lastmod>2026-06-18</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
 </urlset>

@@ -390,7 +390,7 @@ export const PropertyDetails: React.FC = () => {
 
   // Share Configurations
   const propertySlug = property.slug || (property.title ? slugify(property.title) : property.id);
-  const shareUrl = `${window.location.origin}/#/${propertySlug}`;
+  const shareUrl = `${window.location.origin}/${propertySlug}`;
   const shareTitle = `Confira este excelente imóvel: ${property.title}`;
 
   // Configuração do WhatsApp
@@ -731,7 +731,7 @@ export const PropertyDetails: React.FC = () => {
           title={property.seoTitle || translatedTitle} 
           description={property.seoDescription || (translatedDescription ? translatedDescription.slice(0, 160) + '...' : `Confira os detalhes de ${translatedTitle} com o corretor Paulo Martins.`)} 
           image={property.seoImageUrl || property.imageUrl}
-          urlPath={`/#/${propertySlug}`}
+          urlPath={`/${propertySlug}`}
         />
       
       <div className="relative h-[60vh] md:h-[70vh] group/hero overflow-hidden bg-black">

@@ -29,8 +29,8 @@ import { FavoritesProvider } from './context/FavoritesContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { supabase } from './lib/supabase';
 
-const { HashRouter, Routes, Route, useLocation, Navigate } = RouterDom;
-const Router = HashRouter;
+const { BrowserRouter, Routes, Route, useLocation, Navigate } = RouterDom;
+const Router = BrowserRouter;
 
 // Helper to inject raw HTML tracking scripts in <head> or <body> safely
 const injectHtmlScripts = (html: string, idPrefix: string) => {
@@ -256,7 +256,7 @@ function App() {
                     } 
                 />
                 
-                {/* Fallback segment for friendly slug routing (e.g. www.dominio.com/#/alto-sobradinho-exclusive) */}
+                {/* Fallback segment for friendly slug routing (e.g. www.dominio.com/alto-sobradinho-exclusive) */}
                 <Route path="/:idOrSlug" element={<PropertyDetails />} />
                 
                 {/* Catch-all 404 Route */}

@@ -277,7 +277,7 @@ ${JSON.stringify(texts)}`,
       const emailPromises = matchedAlerts.map(async (alert) => {
         try {
           const pDesc = property.brief_desc_home || property.description || '';
-          const pLink = `https://${req.headers.host || "pmartinsimob.com.br"}/#/${property.slug || property.id}`;
+          const pLink = `https://${req.headers.host || "pmartinsimob.com.br"}/${property.slug || property.id}`;
 
           // Substring Replacement
           let htmlContent = (settings.resend_email_template || '')
@@ -374,11 +374,6 @@ app.get("/sitemap.xml", async (req, res) => {
         const slug = prop.slug || (prop.title ? slugifyServer(prop.title) : prop.id);
         propertyUrls += `
   <url>
-    <loc>${baseUrl}/#/${slug}</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>${baseUrl}/${slug}</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -398,19 +393,9 @@ app.get("/sitemap.xml", async (req, res) => {
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>${baseUrl}/#/about</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>${baseUrl}/about</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/#/properties</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
   </url>
   <url>
     <loc>${baseUrl}/properties</loc>
@@ -418,29 +403,14 @@ app.get("/sitemap.xml", async (req, res) => {
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>${baseUrl}/#/contact</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>${baseUrl}/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>${baseUrl}/#/privacy</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
     <loc>${baseUrl}/privacy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/#/alto-sobradinho</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.95</priority>
   </url>
   <url>
     <loc>${baseUrl}/alto-sobradinho</loc>

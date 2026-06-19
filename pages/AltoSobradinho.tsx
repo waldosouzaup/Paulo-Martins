@@ -291,7 +291,7 @@ export const AltoSobradinho: React.FC = () => {
         title={heroTitle ? `${heroTitle.replace(/<br\s*\/?>/gi, ' ')} - Residencial Alto do Horizonte` : "Alto Sobradinho - Residencial Alto do Horizonte"} 
         description={heroSubtitle || "Conheça o Residencial Alto do Horizonte em Sobradinho. Lindos apartamentos de 2 quartos com elevador, varanda gourmet, lazer resort e a qualidade Paulo Martins."} 
         image={heroImage}
-        urlPath="/#/alto-sobradinho"
+        urlPath="/alto-sobradinho"
       />
 
       {/* --- HERO PREMIUM --- */}
