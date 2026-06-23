@@ -597,7 +597,7 @@ export const AltoSobradinho: React.FC = () => {
 
               {/* Right stack column layout */}
               <div className="lg:col-span-4 flex flex-col gap-4 justify-between">
-                {gallery[activeTab].map((item, idx) => (
+                {gallery[activeTab].map((item: any, idx: number) => (
                   <div 
                     key={idx}
                     onClick={() => setActivePhotoIdx(idx)}
@@ -649,7 +649,7 @@ export const AltoSobradinho: React.FC = () => {
 
               {/* Leisure check list bullet items */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                {leisureBullets.map((bullet, idx) => (
+                {leisureBullets.map((bullet: any, idx: number) => (
                   <div key={idx} className="flex items-start gap-2.5">
                     <div className="w-5 h-5 rounded bg-gold-400/10 flex items-center justify-center text-gold-400 shrink-0 mt-0.5">
                       <Check size={14} />

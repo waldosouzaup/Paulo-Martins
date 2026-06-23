@@ -99,7 +99,7 @@ export const About: React.FC = () => {
         (payload) => {
           console.log('Realtime update received for About Us:', payload);
           if (payload.new && Object.keys(payload.new).length > 0) {
-            const dbData = payload.new;
+            const dbData = payload.new as any;
             setData({
               title: dbData.title || DEFAULT_ABOUT.title,
               content: dbData.content || DEFAULT_ABOUT.content,

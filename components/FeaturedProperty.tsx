@@ -298,7 +298,7 @@ export const FeaturedProperty: React.FC = () => {
                     <p className="text-[13px] font-medium text-gray-200 flex items-center gap-1.5 tracking-wide">
                       <BedDouble size={14} className="text-gold-500 shrink-0" />
                       {(() => {
-                        const beds = propertyToShow.beds || '';
+                        const beds = String(propertyToShow.beds || '');
                         const lowercase = beds.toLowerCase();
                         if (lowercase.includes('quarto') || lowercase.includes('dormit') || lowercase.includes('suít') || lowercase.includes('suite')) {
                           return beds;
@@ -314,7 +314,7 @@ export const FeaturedProperty: React.FC = () => {
                     <p className="text-[13px] font-medium text-gray-200 flex items-center gap-1.5 tracking-wide">
                       <Car size={14} className="text-gold-500 shrink-0" />
                       {(() => {
-                        const parking = propertyToShow.parking || '';
+                        const parking = String(propertyToShow.parking || '');
                         const lowercase = parking.toLowerCase();
                         if (lowercase.includes('vaga') || lowercase.includes('garag')) {
                           return parking;

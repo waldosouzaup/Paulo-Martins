@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenAI, Type } from "@google/genai";
@@ -495,9 +496,85 @@ app.get("/sitemap.xml", async (req, res) => {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    app.use(express.static(distPath, { index: false }));
+    
+    app.get('*', async (req, res) => {
+      const requestPath = req.path;
+      
+      // Skip API, sitemap, robots, or files with extensions
+      if (
+        requestPath.startsWith('/api') || 
+        requestPath === '/robots.txt' || 
+        requestPath === '/sitemap.xml' || 
+        requestPath.includes('.')
+      ) {
+        return res.status(404).send('Not Found');
+      }
+
+      try {
+        const indexPath = path.join(distPath, 'index.html');
+        let html = await fs.promises.readFile(indexPath, 'utf-8');
+
+        // Extract potential slug from path (e.g. /singulare-home-riva-apartamentos-2-quartos-samambaiadf)
+        const cleanSlug = requestPath.replace(/^\/+|\/+$/g, '');
+        const finalSlug = cleanSlug.startsWith('property/') ? cleanSlug.substring(9) : cleanSlug;
+        
+        if (finalSlug && finalSlug !== 'about' && finalSlug !== 'properties' && finalSlug !== 'contact' && finalSlug !== 'favorites' && finalSlug !== 'privacy' && finalSlug !== 'alto-sobradinho' && !finalSlug.startsWith('admin')) {
+          console.log(`[SEO Server] Checking dynamic meta injection for slug: "${finalSlug}"`);
+          
+          // Query Supabase server-side for this property
+          const { data: property, error } = await supabaseServer
+            .from('properties')
+            .select('*')
+            .or(`slug.eq."${finalSlug}",id.eq."${finalSlug}"`)
+            .maybeSingle();
+
+          if (error) {
+            console.error(`[SEO Server] Error querying property for slug ${finalSlug}:`, error);
+          } else if (property) {
+            console.log(`[SEO Server] Found property: "${property.title}". Injecting SEO metadata.`);
+            
+            const pTitle = property.seo_title || property.title || "Imóvel Exclusivo";
+            const seoTitle = pTitle.includes("Paulo Martins") ? pTitle : `${pTitle} | Paulo Martins`;
+            
+            const rawDesc = property.seo_description || property.brief_desc_home || property.description || "";
+            const seoDesc = rawDesc.trim().length > 0 
+              ? (rawDesc.length > 160 ? `${rawDesc.slice(0, 157)}...` : rawDesc)
+              : "Confira este maravilhoso imóvel exclusivo em Brasília. Agende sua visita guiada personalizada com o corretor Paulo Martins.";
+              
+            const seoImage = property.seo_image_url || property.image_url || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&h=630&q=80";
+
+            // Inject replacements in HTML
+            // Title Tag
+            html = html.replace(/<title>[^<]*<\/title>/i, `<title>${seoTitle}</title>`);
+            
+            // Meta Description
+            html = html.replace(/<meta\s+name="description"\s+content="[^"]*"\s*\/?>/i, `<meta name="description" content="${seoDesc}" />`);
+            html = html.replace(/<meta\s+content="[^"]*"\s+name="description"\s*\/?>/i, `<meta name="description" content="${seoDesc}" />`);
+            
+            // Open Graph (Facebook/WhatsApp/SEO tools)
+            html = html.replace(/<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:title" content="${seoTitle}" />`);
+            html = html.replace(/<meta\s+property="og:description"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:description" content="${seoDesc}" />`);
+            html = html.replace(/<meta\s+property="og:image"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:image" content="${seoImage}" />`);
+            
+            // Twitter Cards
+            html = html.replace(/<meta\s+name="twitter:title"\s+content="[^"]*"\s*\/?>/i, `<meta name="twitter:title" content="${seoTitle}" />`);
+            html = html.replace(/<meta\s+name="twitter:description"\s+content="[^"]*"\s*\/?>/i, `<meta name="twitter:description" content="${seoDesc}" />`);
+            html = html.replace(/<meta\s+name="twitter:image"\s+content="[^"]*"\s*\/?>/i, `<meta name="twitter:image" content="${seoImage}" />`);
+            
+            // Replace url in structured data or og:url if present
+            const fullUrl = `https://${req.headers.host || "pmartinsimob.com.br"}/${cleanSlug}`;
+            html = html.replace(/<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:url" content="${fullUrl}" />`);
+          } else {
+            console.log(`[SEO Server] No property found for slug: "${finalSlug}". Serving default index.html.`);
+          }
+        }
+        
+        res.send(html);
+      } catch (err) {
+        console.error("[SEO Server] Critical error rendering/serving index.html:", err);
+        res.status(500).send("Internal Server Error");
+      }
     });
   }
 

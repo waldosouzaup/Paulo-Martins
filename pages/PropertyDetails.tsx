@@ -107,7 +107,7 @@ const optimizeUnsplashUrlThumbnail = (url: string) => {
 
 export const PropertyDetails: React.FC = () => {
   const { id, idOrSlug } = useParams<{ id?: string; idOrSlug?: string }>();
-  const { properties, trackingSettings } = useProperties();
+  const { properties, loading, trackingSettings } = useProperties();
   const { isFavorite, addFavorite, removeFavorite } = useFavorites();
   
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -131,6 +131,15 @@ export const PropertyDetails: React.FC = () => {
   };
 
   const identifier = id || idOrSlug;
+
+  if (loading && properties.length === 0) {
+    return (
+      <div className="min-h-screen bg-dark-950 flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-10 h-10 text-gold-500 animate-spin" />
+        <span className="text-gray-400 font-sans text-xs tracking-wider uppercase">Carregando detalhes do imóvel exclusivo...</span>
+      </div>
+    );
+  }
 
   const property = properties.find(p => 
     String(p.id) === String(identifier) || 
@@ -1642,7 +1651,7 @@ export const PropertyDetails: React.FC = () => {
             <p className="text-base font-bold text-slate-800 flex items-center justify-center gap-2">
               <BedDouble size={16} className="text-[#a37e17]" />
               {(() => {
-                const beds = property.beds || '';
+                const beds = String(property.beds || '');
                 const lowercase = beds.toLowerCase();
                 if (lowercase.includes('quarto') || lowercase.includes('dormit') || lowercase.includes('suít') || lowercase.includes('suite')) {
                   return beds;
@@ -1656,7 +1665,7 @@ export const PropertyDetails: React.FC = () => {
             <p className="text-base font-bold text-slate-800 flex items-center justify-center gap-2">
               <Car size={16} className="text-[#a37e17]" />
               {(() => {
-                const parking = property.parking || '';
+                const parking = String(property.parking || '');
                 const lowercase = parking.toLowerCase();
                 if (lowercase.includes('vaga') || lowercase.includes('garag')) {
                   return parking;
