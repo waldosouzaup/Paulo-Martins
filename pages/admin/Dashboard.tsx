@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
 import * as RouterDom from 'react-router-dom';
-import { Plus, Trash2, LogOut, Edit, RefreshCw, CheckCircle, XCircle, Loader2, Code, FileText, Bell, Mail, Filter } from 'lucide-react';
+import { Plus, Trash2, LogOut, Edit, RefreshCw, CheckCircle, XCircle, Loader2, Code, FileText, Bell, Mail, Filter, Globe } from 'lucide-react';
 import { useProperties } from '../../context/PropertyContext';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { SEOManagerTab } from '../../components/SEOManagerTab';
 
 const { Link } = RouterDom;
 
@@ -14,7 +15,7 @@ export const Dashboard: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [keepAliveData, setKeepAliveData] = useState<any>(null);
   const [loadingKeepAlive, setLoadingKeepAlive] = useState(false);
-  const [activeTab, setActiveTab] = useState<'properties' | 'alerts' | 'radar_config'>('properties');
+  const [activeTab, setActiveTab] = useState<'properties' | 'alerts' | 'radar_config' | 'seo'>('properties');
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loadingAlerts, setLoadingAlerts] = useState(false);
 
@@ -287,6 +288,17 @@ export const Dashboard: React.FC = () => {
            >
              <Mail size={12} className={activeTab === 'radar_config' ? 'text-gold-400' : ''} />
              Config. do Radar/Resend
+            </button>
+            <button
+              onClick={() => setActiveTab('seo')}
+              className={`px-5 py-3 text-xs uppercase tracking-widest font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+                activeTab === 'seo'
+                  ? 'border-gold-500 text-white font-bold text-shadow-sm'
+                  : 'border-transparent text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <Globe size={12} className={activeTab === 'seo' ? 'text-gold-400' : ''} />
+              Otimização de SEO
            </button>
          </div>
 
@@ -554,7 +566,7 @@ export const Dashboard: React.FC = () => {
                 </>
               )}
             </>
-          ) : (
+          ) : activeTab === 'radar_config' ? (
             <div className="p-6 sm:p-8 space-y-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-4">
                 <div>
@@ -680,6 +692,8 @@ export const Dashboard: React.FC = () => {
                 </form>
               )}
             </div>
+          ) : (
+            <SEOManagerTab />
           )}
         </div>
 

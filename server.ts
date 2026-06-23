@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { createClient } from "@supabase/supabase-js";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 // Supabase details from connection file
 const supabaseUrl = 'https://mkadaugyoptuptxlgpdq.supabase.co';
@@ -144,6 +144,69 @@ ${JSON.stringify(texts)}`,
     } catch (err) {
       console.error(`[Translation Backend] Error translating list to ${to}:`, err);
       res.json({ translations: texts }); // Fallback
+    }
+  });
+
+  // API Route: Generate optimized SEO metadata using Gemini
+  app.post("/api/seo/generate", async (req, res) => {
+    const { title, description, location, beds, parking, area } = req.body;
+
+    const client = getGeminiClient();
+    if (!client) {
+      console.warn("[SEO Generator Backend] Gemini Client is not available.");
+      return res.status(500).json({ error: "Gemini API Key is not configured." });
+    }
+
+    try {
+      const response = await client.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: `Gere títulos e descrições SEO otimizados para um imóvel de luxo com as seguintes informações:
+Título original: ${title || ""}
+Descrição original: ${description || ""}
+Localização: ${location || ""}
+Quartos: ${beds || ""}
+Vagas: ${parking || ""}
+Área: ${area || ""}
+
+O público-alvo são compradores de imóveis de altíssimo padrão em Brasília. Foque em termos de sofisticação, exclusividade e prestígio.`,
+        config: {
+          systemInstruction: "Você é um especialista em SEO e Copywriting para o mercado imobiliário de luxo em Brasília. Seu objetivo é criar metatags extremamente atraentes, que estimulem o clique nas buscas orgânicas e redes sociais.",
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              seoTitle: {
+                type: Type.STRING,
+                description: "Título da página otimizado para SEO, com no máximo 60 caracteres. Deve conter o nome/tipo do imóvel e localização (ex: Lago Sul, Noroeste).",
+              },
+              seoDescription: {
+                type: Type.STRING,
+                description: "Meta description otimizada para buscadores (Google), com no máximo 160 caracteres. Deve incluir um call-to-action sutil.",
+              },
+              ogTitle: {
+                type: Type.STRING,
+                description: "Título otimizado para redes sociais (OpenGraph/WhatsApp), com no máximo 60 caracteres.",
+              },
+              ogDescription: {
+                type: Type.STRING,
+                description: "Descrição otimizada para redes sociais (OpenGraph/WhatsApp), com no máximo 150 caracteres.",
+              }
+            },
+            required: ["seoTitle", "seoDescription", "ogTitle", "ogDescription"]
+          },
+        },
+      });
+
+      const resultText = response.text?.trim();
+      if (!resultText) {
+        throw new Error("No text returned from Gemini model.");
+      }
+
+      const seoData = JSON.parse(resultText);
+      res.json(seoData);
+    } catch (err: any) {
+      console.error("[SEO Generator Backend] Error generating SEO metadata:", err);
+      res.status(500).json({ error: "Falha ao gerar metadados de SEO." });
     }
   });
 

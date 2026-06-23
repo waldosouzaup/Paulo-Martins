@@ -63,7 +63,16 @@ export const translations: Record<LanguageType, Record<string, string>> = {
     // Footer
     "footer.rights": "Todos os direitos reservados.",
     "footer.creci": "CRECI-DF: 12345",
-    "footer.dev": "Paulo Martins Consultoria Imobiliária."
+    "footer.dev": "Paulo Martins Consultoria Imobiliária.",
+    // Featured Property
+    "featured.special_curation": "Curadoria Especial",
+    "featured.property_of_the_month": "Imóvel do Mês",
+    "featured.property_of_the_month_desc": "Nossa escolha mensal de residências que reúnem design arquitetônico incomparável, localização prestigiada e sofisticação em todos os detalhes.",
+    "featured.special_conditions_left": "Condições Especiais Restantes",
+    "featured.time": "Tempo:",
+    "featured.explore_portfolio": "Explorar Portfólio",
+    "grid.exclusives": "Oportunidades Exclusivas",
+    "grid.no_properties": "Nenhum imóvel encontrado."
   },
   en: {
     // Nav
@@ -125,7 +134,16 @@ export const translations: Record<LanguageType, Record<string, string>> = {
     // Footer
     "footer.rights": "All rights reserved.",
     "footer.creci": "CRECI-DF: 12345",
-    "footer.dev": "Paulo Martins Real Estate Consulting."
+    "footer.dev": "Paulo Martins Real Estate Consulting.",
+    // Featured Property
+    "featured.special_curation": "Special Curation",
+    "featured.property_of_the_month": "Property of the Month",
+    "featured.property_of_the_month_desc": "Our monthly selection of residences that combine incomparable architectural design, prestigious location, and sophistication in every detail.",
+    "featured.special_conditions_left": "Special Conditions Remaining",
+    "featured.time": "Time:",
+    "featured.explore_portfolio": "Explore Portfolio",
+    "grid.exclusives": "Exclusive Opportunities",
+    "grid.no_properties": "No properties found."
   },
   es: {
     // Nav
@@ -187,7 +205,16 @@ export const translations: Record<LanguageType, Record<string, string>> = {
     // Footer
     "footer.rights": "Todos los derechos reservados.",
     "footer.creci": "CRECI-DF: 12345",
-    "footer.dev": "Paulo Martins Consultoría Inmobiliaria."
+    "footer.dev": "Paulo Martins Consultoría Inmobiliaria.",
+    // Featured Property
+    "featured.special_curation": "Curaduría Especial",
+    "featured.property_of_the_month": "Propiedad del Mes",
+    "featured.property_of_the_month_desc": "Nuestra selección mensual de residencias que reúnen un diseño arquitectónico incomparable, ubicación de prestigio y sofisticación en todos los detalles.",
+    "featured.special_conditions_left": "Condiciones Especiales Restantes",
+    "featured.time": "Tiempo:",
+    "featured.explore_portfolio": "Explorar Portafolio",
+    "grid.exclusives": "Oportunidades Exclusivas",
+    "grid.no_properties": "No se encontraron propiedades."
   }
 };
 

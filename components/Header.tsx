@@ -11,7 +11,8 @@ export const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const desktopDropdownRef = useRef<HTMLDivElement>(null);
+  const mobileDropdownRef = useRef<HTMLDivElement>(null);
   
   const { language, setLanguage, t } = useLanguage();
   const location = useLocation();
@@ -35,7 +36,10 @@ export const Header: React.FC = () => {
   // Close language dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const isOutsideDesktop = !desktopDropdownRef.current || !desktopDropdownRef.current.contains(target);
+      const isOutsideMobile = !mobileDropdownRef.current || !mobileDropdownRef.current.contains(target);
+      if (isOutsideDesktop && isOutsideMobile) {
         setLangDropdownOpen(false);
       }
     };
@@ -87,7 +91,7 @@ export const Header: React.FC = () => {
             </div>
 
             {/* Language Selector Desktop */}
-            <div className="relative ml-2 text-left" ref={dropdownRef}>
+            <div className="relative ml-2 text-left" ref={desktopDropdownRef}>
               <button
                 onClick={() => setLangDropdownOpen(!langDropdownOpen)}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold uppercase text-gray-300 hover:text-white bg-white/5 border border-white/10 hover:bg-gold-500/10 hover:border-gold-500/30 transition-all duration-300"
@@ -124,7 +128,7 @@ export const Header: React.FC = () => {
         {/* Mobile Controls */}
         <div className="flex items-center gap-3 md:hidden">
           {/* Language Selector Mobile Toggle Icon */}
-          <div className="relative text-left" ref={dropdownRef}>
+          <div className="relative text-left" ref={mobileDropdownRef}>
             <button
               onClick={() => setLangDropdownOpen(!langDropdownOpen)}
               className="p-2 rounded-full text-gray-300 bg-white/5 border border-white/10"

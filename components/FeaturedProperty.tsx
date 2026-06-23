@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import * as RouterDom from 'react-router-dom';
 import { useProperties } from '../context/PropertyContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Property } from '../types';
 import { formatPropertyTag, slugify } from '../lib/utils';
-import { BedDouble, Car, Scaling, ArrowRight, MapPin, Award, Clock, Flame } from 'lucide-react';
+import { BedDouble, Car, Scaling, ArrowRight, MapPin, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const { Link } = RouterDom;
@@ -17,6 +18,7 @@ const getTargetTimeOfCurrentMonth = () => {
 
 export const FeaturedProperty: React.FC = () => {
   const { properties, loading } = useProperties();
+  const { language, translateDynamic, translateList, t } = useLanguage();
 
   // Countdown State
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -48,11 +50,6 @@ export const FeaturedProperty: React.FC = () => {
   }, []);
 
   // Find a suitable property to display. 
-  // Order of preference:
-  // 1. Property explicitly marked as is_featured by the admin
-  // 2. Property explicitly tagged or having "destaque", "exclusivo" or "mês" in the tag/title
-  // 3. The first property available in the list
-  // 4. Fallback luxury mock property if database is empty or loading
   let featured: Property | null = null;
 
   if (!loading && properties.length > 0) {
@@ -64,7 +61,7 @@ export const FeaturedProperty: React.FC = () => {
     ) || properties[0];
   }
 
-  // Deluxe mock fallback property details (guarantees a magnificent layout even if database is empty)
+  // Deluxe mock fallback property details
   const fallbackProperty: Property = {
     id: properties[0]?.id || 'fallback-featured',
     title: 'Mansão Suspensa de Altíssimo Padrão no Noroeste',
@@ -94,6 +91,11 @@ export const FeaturedProperty: React.FC = () => {
 
   const [currentImgIdx, setCurrentImgIdx] = useState(0);
 
+  // States for Translated Contents
+  const [translatedTitle, setTranslatedTitle] = useState(propertyToShow.title);
+  const [translatedLocation, setTranslatedLocation] = useState(propertyToShow.location);
+  const [translatedDesc, setTranslatedDesc] = useState(propertyToShow.brief_desc_home || propertyToShow.description);
+
   // Reset active index when selected property changes
   useEffect(() => {
     setCurrentImgIdx(0);
@@ -105,12 +107,40 @@ export const FeaturedProperty: React.FC = () => {
 
     const interval = setInterval(() => {
       setCurrentImgIdx((prev) => (prev + 1) % slideshowImages.length);
-    }, 5500); // changes smoothly every 5.5 seconds
+    }, 5500);
 
     return () => clearInterval(interval);
   }, [slideshowImages.length]);
 
-  // Render a clean structural placeholder if the database is in a loading state and we have no fallback
+  // Translate Effect
+  useEffect(() => {
+    setTranslatedTitle(propertyToShow.title);
+    setTranslatedLocation(propertyToShow.location);
+    setTranslatedDesc(propertyToShow.brief_desc_home || propertyToShow.description || '');
+
+    if (language === 'pt') return;
+
+    let isMounted = true;
+    const translateFeatured = async () => {
+      try {
+        const [tit, loc, desc] = await Promise.all([
+          translateDynamic(propertyToShow.title, `feat_${propertyToShow.id}_title`),
+          translateDynamic(propertyToShow.location, `feat_${propertyToShow.id}_location`),
+          translateDynamic(propertyToShow.brief_desc_home || propertyToShow.description || '', `feat_${propertyToShow.id}_desc`)
+        ]);
+        if (isMounted) {
+          setTranslatedTitle(tit);
+          setTranslatedLocation(loc);
+          setTranslatedDesc(desc);
+        }
+      } catch (err) {
+        console.error("Featured property translation error:", err);
+      }
+    };
+    translateFeatured();
+    return () => { isMounted = false; };
+  }, [language, propertyToShow.id, propertyToShow.title, propertyToShow.location, propertyToShow.brief_desc_home, propertyToShow.description]);
+
   return (
     <section id="featured-property-section" className="py-24 px-6 bg-[#030303] relative overflow-hidden">
       {/* Visual Ambient Effects */}
@@ -123,13 +153,13 @@ export const FeaturedProperty: React.FC = () => {
         <div className="text-center mb-16 space-y-3">
           <div className="inline-flex items-center gap-2 bg-gold-600/10 border border-gold-600/30 px-3.5 py-1.5 rounded-full text-[10px] tracking-[0.2em] uppercase text-gold-400 font-bold">
             <Award size={12} className="animate-pulse" />
-            Curadoria Especial
+            {t('featured.special_curation') || 'Curadoria Especial'}
           </div>
           <h2 className="text-3xl md:text-5xl font-serif text-white tracking-wide">
-            Imóvel do Mês
+            {t('featured.property_of_the_month') || 'Imóvel do Mês'}
           </h2>
           <p className="text-sm md:text-base text-gray-400 max-w-2xl mx-auto font-light leading-relaxed">
-            Nossa escolha mensal de residências que reúnem design arquitetônico incomparável, localização prestigiada e sofisticação em todos os detalhes.
+            {t('featured.property_of_the_month_desc') || 'Nossa escolha mensal de residências que reúnem design arquitetônico incomparável, localização prestigiada e sofisticação em todos os detalhes.'}
           </p>
           <div className="h-0.5 w-16 bg-gold-500/50 mx-auto mt-4 rounded-full" />
         </div>
@@ -151,17 +181,18 @@ export const FeaturedProperty: React.FC = () => {
                 <motion.img 
                   key={currentImgIdx}
                   src={slideshowImages[currentImgIdx]} 
-                  alt={`${propertyToShow.title} - Imagem ${currentImgIdx + 1}`}
+                  alt={`${translatedTitle} - Imagem ${currentImgIdx + 1}`}
                   initial={{ opacity: 0, scale: 1.02 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ duration: 1.2, ease: "easeInOut" }}
                   className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
+                  referrerPolicy="no-referrer"
                 />
               </AnimatePresence>
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20 pointer-events-none z-10" />
               
-              {/* Slideshow dot indicators - right-aligned vertically */}
+              {/* Slideshow dot indicators */}
               {slideshowImages.length > 1 && (
                 <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-2.5 z-20 bg-black/50 backdrop-blur-md p-2 rounded-full border border-white/5">
                   {slideshowImages.map((_, idx) => (
@@ -181,7 +212,7 @@ export const FeaturedProperty: React.FC = () => {
 
               {/* Feature Tags / Overlays */}
               <div className="absolute top-6 left-6 flex flex-col gap-2 z-20">
-                <span id="featured-tag-badge" className="bg-gold-600 border border-gold-500/20 text-white text-[10px] font-extrabold px-3 py-1.5 rounded shadow-lg uppercase tracking-widest">
+                <span id="featured-tag-badge" className="bg-gold-600 border border-gold-500/20 text-white text-[10px] font-extrabold px-3 py-1.5 rounded shadow-lg uppercase tracking-widest font-mono">
                   {formatPropertyTag(propertyToShow.tag)}
                 </span>
                 {isFallback && (
@@ -200,11 +231,11 @@ export const FeaturedProperty: React.FC = () => {
                 {/* Meta details */}
                 <div className="space-y-2">
                   <h3 id="featured-title" className="text-2xl md:text-3.5xl font-serif text-white leading-tight font-medium tracking-wide">
-                    {propertyToShow.title}
+                    {translatedTitle}
                   </h3>
-                  <div className="flex items-center text-gray-400 text-sm">
+                  <div className="flex items-center text-gray-400 text-sm font-sans">
                     <MapPin size={15} className="text-gold-500 mr-2 shrink-0" />
-                    {propertyToShow.location}
+                    {translatedLocation}
                   </div>
                 </div>
 
@@ -218,50 +249,44 @@ export const FeaturedProperty: React.FC = () => {
                         {String(timeLeft.days).padStart(2, '0')}
                       </span>
                       <span className="text-[9px] font-extrabold uppercase tracking-wider font-sans leading-none mt-1">
-                        Dias
+                        {timeLeft.days === 1 ? 'Dia' : (language === 'pt' ? 'Dias' : 'Days')}
                       </span>
                     </div>
 
-                    {/* Highly highlighted "OPORTUNIDADE" badge and text */}
+                    {/* Highly highlighted oportunity badge and text */}
                     <div className="space-y-1">
                       <div className="flex items-center gap-1.5">
                         <span className="bg-red-600 text-white font-black text-[10px] tracking-widest px-2.5 py-0.5 rounded shadow-[0_0_15px_rgba(220,38,38,0.4)] uppercase font-mono animate-pulse inline-block">
-                          OPORTUNIDADE
+                          {t('label.opportunity') || 'OPORTUNIDADE'}
                         </span>
                       </div>
                       <p className="text-[10px] uppercase font-mono tracking-wider text-gray-400 font-medium leading-tight">
-                        Condições Especiais Restantes
+                        {t('featured.special_conditions_left') || 'Condições Especiais Restantes'}
                       </p>
                     </div>
                   </div>
 
-                  {/* Right: Sleek Digital Timer (HH:MM:SS) without bottom labels */}
+                  {/* Right: Sleek Digital Timer (HH:MM:SS) */}
                   <div className="flex items-center gap-1.5 bg-black/50 border border-white/5 rounded-xl px-4 py-2.5 backdrop-blur-sm self-start sm:self-auto">
-                    <span className="text-xs text-gray-500 font-mono uppercase tracking-wider font-bold mr-1">Tempo:</span>
+                    <span className="text-xs text-gray-500 font-mono uppercase tracking-wider font-bold mr-1">{t('featured.time') || 'Tempo:'}</span>
                     
                     {/* Hour value */}
-                    <div className="text-center">
-                      <span className="text-sm font-serif text-white font-bold tracking-tight">
-                        {String(timeLeft.hours).padStart(2, '0')}
-                      </span>
+                    <div className="text-center font-serif text-sm text-white font-bold tracking-tight">
+                      {String(timeLeft.hours).padStart(2, '0')}
                     </div>
                     
                     <span className="text-gold-500 font-bold mx-0.5 animate-pulse">:</span>
                     
                     {/* Minute value */}
-                    <div className="text-center">
-                      <span className="text-sm font-serif text-white font-bold tracking-tight">
-                        {String(timeLeft.minutes).padStart(2, '0')}
-                      </span>
+                    <div className="text-center font-serif text-sm text-white font-bold tracking-tight">
+                      {String(timeLeft.minutes).padStart(2, '0')}
                     </div>
                     
                     <span className="text-gold-500 font-bold mx-0.5 animate-pulse">:</span>
                     
                     {/* Second value */}
-                    <div className="text-center">
-                      <span className="text-sm font-serif text-gold-400 font-bold tracking-tight">
-                        {String(timeLeft.seconds).padStart(2, '0')}
-                      </span>
+                    <div className="text-center font-serif text-sm text-gold-400 font-bold tracking-tight">
+                      {String(timeLeft.seconds).padStart(2, '0')}
                     </div>
                   </div>
                 </div>
@@ -269,7 +294,7 @@ export const FeaturedProperty: React.FC = () => {
                 {/* Main Specs (Grid) */}
                 <div className="grid grid-cols-3 gap-4 py-4 border-t border-b border-white/5 font-sans">
                   <div className="space-y-1">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Dormitórios</p>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">{t('label.beds') || 'Dormitórios'}</p>
                     <p className="text-[13px] font-medium text-gray-200 flex items-center gap-1.5 tracking-wide">
                       <BedDouble size={14} className="text-gold-500 shrink-0" />
                       {(() => {
@@ -278,12 +303,14 @@ export const FeaturedProperty: React.FC = () => {
                         if (lowercase.includes('quarto') || lowercase.includes('dormit') || lowercase.includes('suít') || lowercase.includes('suite')) {
                           return beds;
                         }
-                        return `${beds} ${Number(beds) === 1 ? 'Suíte' : 'Suítes'}`;
+                        const bedsNum = Number(beds);
+                        if (isNaN(bedsNum)) return beds;
+                        return `${beds} ${bedsNum === 1 ? (language === 'pt' ? 'Suíte' : 'Suite') : (language === 'pt' ? 'Suítes' : 'Suites')}`;
                       })()}
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Vagas</p>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">{t('label.parking') || 'Vagas'}</p>
                     <p className="text-[13px] font-medium text-gray-200 flex items-center gap-1.5 tracking-wide">
                       <Car size={14} className="text-gold-500 shrink-0" />
                       {(() => {
@@ -292,13 +319,15 @@ export const FeaturedProperty: React.FC = () => {
                         if (lowercase.includes('vaga') || lowercase.includes('garag')) {
                           return parking;
                         }
-                        return `${parking} ${Number(parking) === 1 ? 'Vaga' : 'Vagas'}`;
+                        const parkNum = Number(parking);
+                        if (isNaN(parkNum)) return parking;
+                        return `${parking} ${parkNum === 1 ? (language === 'pt' ? 'Vaga' : 'Space') : (language === 'pt' ? 'Vagas' : 'Spaces')}`;
                       })()}
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Área Útil</p>
-                    <p className="text-[13px] font-medium text-gray-200 flex items-center gap-1.5 tracking-wide">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">{t('label.area') || 'Área Útil'}</p>
+                    <p className="text-[13px] font-medium text-gray-200 flex items-center gap-1.5 tracking-wide font-mono">
                       <Scaling size={14} className="text-gold-500 shrink-0" />
                       {propertyToShow.area}
                     </p>
@@ -307,7 +336,7 @@ export const FeaturedProperty: React.FC = () => {
 
                 {/* Description snippet */}
                 <p id="featured-desc" className="text-gray-300 text-xs md:text-sm font-light leading-relaxed">
-                  {propertyToShow.brief_desc_home || propertyToShow.description}
+                  {translatedDesc}
                 </p>
 
               </div>
@@ -319,7 +348,10 @@ export const FeaturedProperty: React.FC = () => {
                   to={isFallback ? '/properties' : `/${propertyToShow.slug || slugify(propertyToShow.title)}`}
                   className="w-full sm:w-auto bg-gold-600 hover:bg-gold-500 text-white font-medium text-xs uppercase tracking-widest py-3.5 px-8 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_5px_15px_rgba(197,160,40,0.15)] hover:shadow-[0_8px_25px_rgba(197,160,40,0.25)] border border-transparent hover:-translate-y-0.5 text-center"
                 >
-                  {isFallback ? 'Explorar Portfólio' : 'Ver Detalhes do Imóvel'}
+                  {isFallback 
+                    ? (t('featured.explore_portfolio') || 'Explorar Portfólio') 
+                    : (t('label.details') || 'Ver Detalhes do Imóvel')
+                  }
                   <ArrowRight size={14} className="animate-pulse" />
                 </Link>
               </div>

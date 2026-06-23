@@ -689,6 +689,41 @@ export const PropertyForm: React.FC = () => {
                             <span className="text-[10px] text-gray-400">Personalize o visual deste imóvel no Google, WhatsApp, Facebook e LinkedIn. Deixe em branco para usar as informações padrão do imóvel.</span>
                         </div>
                         
+                        {/* Real-time Google Search Preview Component */}
+                        <div className="bg-dark-950/50 border border-white/5 p-4 rounded-xl space-y-2">
+                            <div className="flex items-center justify-between">
+                                <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                    Prévia Real-time no Google
+                                </span>
+                                <span className="text-[9px] text-gray-500 bg-white/5 px-1.5 py-0.5 rounded">Desktop & Mobile</span>
+                            </div>
+                            
+                            <div className="bg-white p-4 rounded-lg border border-gray-100 shadow-sm space-y-1 font-sans">
+                                {/* Google Breadcrumb */}
+                                <div className="flex items-center text-[12px] text-[#202124] font-sans truncate">
+                                    <div className="w-4 h-4 rounded-full bg-[#f1f3f4] flex items-center justify-center mr-1.5 text-[8px] font-bold text-gray-500">PM</div>
+                                    <span className="font-normal text-[12px] text-[#202124]">pmartinsimob.com.br</span>
+                                    <span className="text-[#5f6368] mx-1">›</span>
+                                    <span className="text-[#5f6368] max-w-[150px] truncate">
+                                        {formData.slug || (formData.title ? slugify(formData.title) : "imovel")}
+                                    </span>
+                                </div>
+                                
+                                {/* Google Title */}
+                                <h4 className="text-[19px] leading-snug text-[#1a0dab] hover:underline cursor-pointer truncate font-medium">
+                                    {formData.seoTitle.trim() || (formData.title ? `${formData.title} | Paulo Martins` : "Título do Imóvel | Paulo Martins")}
+                                </h4>
+                                
+                                {/* Google Description */}
+                                <p className="text-[13px] leading-relaxed text-[#4d5156] font-normal break-words line-clamp-2">
+                                    {formData.seoDescription.trim() || (formData.description 
+                                        ? (formData.description.length > 155 ? `${formData.description.slice(0, 155)}...` : formData.description)
+                                        : "Confira detalhes deste espetacular imóvel exclusivo em Brasília com a consultoria Paulo Martins.")}
+                                </p>
+                            </div>
+                        </div>
+
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-gray-400 text-[10px] uppercase tracking-wider mb-1 font-semibold">Título SEO Customizado</label>
