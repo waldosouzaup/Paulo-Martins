@@ -30,6 +30,8 @@ interface PropertyContextType {
   checkConnection: () => Promise<ConnectionStatus>;
   trackingSettings: TrackingSettings | null;
   refreshTrackingSettings: () => Promise<void>;
+  supportsWebp: boolean;
+  getOptimizedImageUrl: (url: string, options?: { width?: number; quality?: number }) => string;
 }
 
 const PropertyContext = createContext<PropertyContextType | undefined>(undefined);
@@ -39,6 +41,66 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [loading, setLoading] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('checking');
   const [trackingSettings, setTrackingSettings] = useState<TrackingSettings | null>(null);
+
+  const [supportsWebp, setSupportsWebp] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      const elem = document.createElement('canvas');
+      if (elem.getContext && elem.getContext('2d')) {
+        const isSupported = elem.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+        setSupportsWebp(isSupported);
+        console.log(`[WebP Optimization] Navegador suporta WebP: ${isSupported}`);
+      }
+    } catch (e) {
+      setSupportsWebp(false);
+    }
+  }, []);
+
+  const getOptimizedImageUrl = (url: string, options?: { width?: number; quality?: number }) => {
+    if (!url) return '';
+    if (url.startsWith('data:') || url.endsWith('.svg') || url.length < 10) {
+      return url;
+    }
+
+    const width = options?.width || 800;
+    const quality = options?.quality || 75;
+
+    // 1. Unsplash URL Optimization
+    if (url.includes('unsplash.com')) {
+      try {
+        const urlObj = new URL(url);
+        urlObj.searchParams.set('fm', supportsWebp ? 'webp' : 'jpg');
+        urlObj.searchParams.set('w', String(width));
+        urlObj.searchParams.set('q', String(quality));
+        urlObj.searchParams.set('fit', 'crop');
+        if (!urlObj.searchParams.has('auto')) {
+          urlObj.searchParams.set('auto', 'format');
+        }
+        return urlObj.toString();
+      } catch (e) {
+        return url;
+      }
+    }
+
+    // 2. Supabase Storage Optimization
+    if (url.includes('supabase.co') && url.includes('/storage/v1/object/public/')) {
+      try {
+        const renderUrl = url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+        const urlObj = new URL(renderUrl);
+        urlObj.searchParams.set('width', String(width));
+        urlObj.searchParams.set('quality', String(quality));
+        if (supportsWebp) {
+          urlObj.searchParams.set('format', 'webp');
+        }
+        return urlObj.toString();
+      } catch (e) {
+        return url;
+      }
+    }
+
+    return url;
+  };
 
   const fetchTrackingSettings = async () => {
     try {
@@ -502,7 +564,9 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
       refreshProperties: fetchProperties,
       checkConnection,
       trackingSettings,
-      refreshTrackingSettings: fetchTrackingSettings
+      refreshTrackingSettings: fetchTrackingSettings,
+      supportsWebp,
+      getOptimizedImageUrl
     }}>
       {children}
     </PropertyContext.Provider>

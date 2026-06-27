@@ -522,49 +522,120 @@ app.get("/sitemap.xml", async (req, res) => {
         if (finalSlug && finalSlug !== 'about' && finalSlug !== 'properties' && finalSlug !== 'contact' && finalSlug !== 'favorites' && finalSlug !== 'privacy' && finalSlug !== 'alto-sobradinho' && !finalSlug.startsWith('admin')) {
           console.log(`[SEO Server] Checking dynamic meta injection for slug: "${finalSlug}"`);
           
-          // Query Supabase server-side for this property
-          const { data: property, error } = await supabaseServer
+          let property = null;
+          
+          // A. Robust query sequence to completely bypass any possible Postgrest .or quote-syntax errors:
+          // 1. First attempt: Query exact slug match
+          const { data: bySlug, error: slugError } = await supabaseServer
             .from('properties')
             .select('*')
-            .or(`slug.eq."${finalSlug}",id.eq."${finalSlug}"`)
+            .eq('slug', finalSlug)
             .maybeSingle();
+            
+          if (bySlug) {
+            property = bySlug;
+          } else {
+            // 2. Second attempt: Check if the slug represents a numeric ID or UUID
+            const isNumeric = /^\d+$/.test(finalSlug);
+            const isUuid = /^[0-9a-fA-F-]{36}$/.test(finalSlug);
+            
+            if (isNumeric || isUuid) {
+              const { data: byId } = await supabaseServer
+                .from('properties')
+                .select('*')
+                .eq('id', isNumeric ? Number(finalSlug) : finalSlug)
+                .maybeSingle();
+              if (byId) property = byId;
+            }
+          }
 
-          if (error) {
-            console.error(`[SEO Server] Error querying property for slug ${finalSlug}:`, error);
-          } else if (property) {
-            console.log(`[SEO Server] Found property: "${property.title}". Injecting SEO metadata.`);
+          if (property) {
+            console.log(`[SEO Server] Found property: "${property.title}". Injecting SEO metadata & structured JSON-LD.`);
             
             const pTitle = property.seo_title || property.title || "Imóvel Exclusivo";
             const seoTitle = pTitle.includes("Paulo Martins") ? pTitle : `${pTitle} | Paulo Martins`;
             
             const rawDesc = property.seo_description || property.brief_desc_home || property.description || "";
-            const seoDesc = rawDesc.trim().length > 0 
-              ? (rawDesc.length > 160 ? `${rawDesc.slice(0, 157)}...` : rawDesc)
-              : "Confira este maravilhoso imóvel exclusivo em Brasília. Agende sua visita guiada personalizada com o corretor Paulo Martins.";
+            let seoDesc = rawDesc.trim().replace(/\s+/g, ' ');
+            if (seoDesc.length > 160) {
+              seoDesc = `${seoDesc.slice(0, 157)}...`;
+            }
+            if (seoDesc.length === 0) {
+              seoDesc = "Confira este maravilhoso imóvel exclusivo em Brasília. Agende sua visita guiada personalizada com o corretor Paulo Martins.";
+            }
               
             const seoImage = property.seo_image_url || property.image_url || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&h=630&q=80";
-
-            // Inject replacements in HTML
-            // Title Tag
-            html = html.replace(/<title>[^<]*<\/title>/i, `<title>${seoTitle}</title>`);
-            
-            // Meta Description
-            html = html.replace(/<meta\s+name="description"\s+content="[^"]*"\s*\/?>/i, `<meta name="description" content="${seoDesc}" />`);
-            html = html.replace(/<meta\s+content="[^"]*"\s+name="description"\s*\/?>/i, `<meta name="description" content="${seoDesc}" />`);
-            
-            // Open Graph (Facebook/WhatsApp/SEO tools)
-            html = html.replace(/<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:title" content="${seoTitle}" />`);
-            html = html.replace(/<meta\s+property="og:description"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:description" content="${seoDesc}" />`);
-            html = html.replace(/<meta\s+property="og:image"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:image" content="${seoImage}" />`);
-            
-            // Twitter Cards
-            html = html.replace(/<meta\s+name="twitter:title"\s+content="[^"]*"\s*\/?>/i, `<meta name="twitter:title" content="${seoTitle}" />`);
-            html = html.replace(/<meta\s+name="twitter:description"\s+content="[^"]*"\s*\/?>/i, `<meta name="twitter:description" content="${seoDesc}" />`);
-            html = html.replace(/<meta\s+name="twitter:image"\s+content="[^"]*"\s*\/?>/i, `<meta name="twitter:image" content="${seoImage}" />`);
-            
-            // Replace url in structured data or og:url if present
             const fullUrl = `https://${req.headers.host || "pmartinsimob.com.br"}/${cleanSlug}`;
-            html = html.replace(/<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:url" content="${fullUrl}" />`);
+
+            // Helper to modify or inject metadata safely (handles regular expressions or injects them as fallbacks)
+            const injectTag = (tagHtml: string, regex: RegExp) => {
+              if (regex.test(html)) {
+                html = html.replace(regex, tagHtml);
+              } else {
+                html = html.replace('</head>', `${tagHtml}\n</head>`);
+              }
+            };
+
+            // 1. Inject Title Tag
+            injectTag(`<title>${seoTitle}</title>`, /<title>[^<]*<\/title>/i);
+            
+            // 2. Inject Meta Description
+            injectTag(`<meta name="description" content="${seoDesc}" />`, /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/i);
+            
+            // 3. Inject Open Graph Meta (Facebook, WhatsApp, Googlebot, AI bots)
+            injectTag(`<meta property="og:title" content="${seoTitle}" />`, /<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/i);
+            injectTag(`<meta property="og:description" content="${seoDesc}" />`, /<meta\s+property="og:description"\s+content="[^"]*"\s*\/?>/i);
+            injectTag(`<meta property="og:image" content="${seoImage}" />`, /<meta\s+property="og:image"\s+content="[^"]*"\s*\/?>/i);
+            injectTag(`<meta property="og:url" content="${fullUrl}" />`, /<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/i);
+            injectTag(`<meta property="og:type" content="article" />`, /<meta\s+property="og:type"\s+content="[^"]*"\s*\/?>/i);
+            
+            // 4. Inject Twitter Meta
+            injectTag(`<meta name="twitter:title" content="${seoTitle}" />`, /<meta\s+name="twitter:title"\s+content="[^"]*"\s*\/?>/i);
+            injectTag(`<meta name="twitter:description" content="${seoDesc}" />`, /<meta\s+name="twitter:description"\s+content="[^"]*"\s*\/?>/i);
+            injectTag(`<meta name="twitter:image" content="${seoImage}" />`, /<meta\s+name="twitter:image"\s+content="[^"]*"\s*\/?>/i);
+
+            // 5. Inject Structured JSON-LD Data for the dynamic property (Gold Standard for SEO and AI Grounding)
+            // Parse specifications safely
+            const bedsCount = parseInt(String(property.beds || '').replace(/\D/g, '')) || 0;
+            const sizeInSqm = parseInt(String(property.area || '').replace(/\D/g, '')) || 0;
+            
+            const propertyJsonLd = {
+              "@context": "https://schema.org",
+              "@type": "RealEstateListing",
+              "name": seoTitle,
+              "description": seoDesc,
+              "url": fullUrl,
+              "image": seoImage,
+              "datePosted": property.created_at || new Date().toISOString(),
+              "offers": {
+                "@type": "Offer",
+                "price": String(property.price).replace(/[^\d]/g, '') || undefined,
+                "priceCurrency": "BRL",
+                "availability": "https://schema.org/InStock",
+                "validFrom": property.created_at || new Date().toISOString()
+              },
+              "about": {
+                "@type": property.type === "Apartamento" ? "Apartment" : "SingleFamilyResidence",
+                "name": property.title,
+                "numberOfRooms": bedsCount > 0 ? bedsCount : undefined,
+                "floorSize": sizeInSqm > 0 ? {
+                  "@type": "QuantitativeValue",
+                  "value": sizeInSqm,
+                  "unitCode": "MTK"
+                } : undefined,
+                "address": {
+                  "@type": "PostalAddress",
+                  "addressLocality": property.city || "Brasília",
+                  "addressRegion": "DF",
+                  "addressCountry": "BR",
+                  "streetAddress": property.location || ""
+                }
+              }
+            };
+
+            const jsonLdScript = `\n    <!-- Dynamic Property Structured Data -->\n    <script type="application/ld+json">\n    ${JSON.stringify(propertyJsonLd, null, 2)}\n    </script>\n`;
+            html = html.replace('</head>', `${jsonLdScript}</head>`);
+            
           } else {
             console.log(`[SEO Server] No property found for slug: "${finalSlug}". Serving default index.html.`);
           }

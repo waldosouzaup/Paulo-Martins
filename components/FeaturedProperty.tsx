@@ -17,7 +17,7 @@ const getTargetTimeOfCurrentMonth = () => {
 };
 
 export const FeaturedProperty: React.FC = () => {
-  const { properties, loading } = useProperties();
+  const { properties, loading, getOptimizedImageUrl } = useProperties();
   const { language, translateDynamic, translateList, t } = useLanguage();
 
   // Countdown State
@@ -180,7 +180,7 @@ export const FeaturedProperty: React.FC = () => {
               <AnimatePresence mode="popLayout">
                 <motion.img 
                   key={currentImgIdx}
-                  src={slideshowImages[currentImgIdx]} 
+                  src={getOptimizedImageUrl(slideshowImages[currentImgIdx], { width: 1200, quality: 80 })} 
                   alt={`${translatedTitle} - Imagem ${currentImgIdx + 1}`}
                   initial={{ opacity: 0, scale: 1.02 }}
                   animate={{ opacity: 1, scale: 1 }}
